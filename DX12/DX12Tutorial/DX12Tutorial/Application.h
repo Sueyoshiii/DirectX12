@@ -45,5 +45,7 @@ public:
 	void Terminate();
 
 	Size GetWindowSize();
+
+	HWND GetWindowHandle()const;
 };
 

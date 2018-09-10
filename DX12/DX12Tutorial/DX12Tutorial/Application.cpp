@@ -127,3 +127,8 @@ Size Application::GetWindowSize()
 	return Size();
 }
 
+HWND Application::GetWindowHandle() const
+{
+	return handle;
+}
+
