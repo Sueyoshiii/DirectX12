@@ -11,8 +11,10 @@ private:
 	ID3D12CommandQueue* commandQueue;
 	IDXGIFactory6* dxgiFactory;
 	IDXGISwapChain4* swapchain;
+
+	HRESULT result;
 public:
-	DX12Wrapper(HINSTANCE h, HWND hwnd);
+	DX12Wrapper();
 	~DX12Wrapper();
 };
 

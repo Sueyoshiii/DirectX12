@@ -5,7 +5,6 @@
 #include "DX12Wrapper.h"
 using namespace std;
 
-HWND hwnd;
 constexpr int WINDOW_WIDTH = 640;
 constexpr int WINDOW_HEIGHT = 480;
 
@@ -57,7 +56,7 @@ void Application::InitWindow()
 	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, false);
 
 	//ウィンドウ作成
-	hwnd = CreateWindow(
+	handle = CreateWindow(
 		wnd.lpszClassName, //OSが式罰するハンドル名
 		_T("DX12"), //タイトルバーのテキスト
 		WS_OVERLAPPEDWINDOW, //ウィンドウ
@@ -76,7 +75,7 @@ void Application::Initialize()
 {
 	InitWindow();
 
-	if (handle = nullptr)
+	if (handle == nullptr)
 	{
 		LPVOID messageBuffer = nullptr;
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
@@ -93,12 +92,12 @@ void Application::Initialize()
 		LocalFree(messageBuffer);
 	}
 
-	dx = std::make_shared<DX12Wrapper>(nullptr, handle);
+	dx = std::make_shared<DX12Wrapper>();
 }
 
 void Application::Run()
 {
-	ShowWindow(hwnd, SW_SHOW);
+	ShowWindow(handle, SW_SHOW);
 
 	MSG msg = {};
 
@@ -124,10 +123,10 @@ void Application::Terminate()
 
 Size Application::GetWindowSize()
 {
-	return Size();
+	return Size(rect.right, rect.bottom);
 }
 
-HWND Application::GetWindowHandle() const
+HWND& Application::GetWindowHandle()
 {
 	return handle;
 }

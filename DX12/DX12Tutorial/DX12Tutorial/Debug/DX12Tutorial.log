@@ -1,3 +1,3 @@
 ﻿  DX12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(84): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(86): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
   DX12Tutorial.vcxproj -> C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Tutorial\Debug\DX12Tutorial.exe

@@ -3,7 +3,9 @@
 
 struct Size {
 	Size() {}
-	Size(int inw, int inh);
+	Size(int inw, int inh) :
+		w(inw), h(inh){
+	}
 	int w;
 	int h;
 };
@@ -46,6 +48,6 @@ public:
 
 	Size GetWindowSize();
 
-	HWND GetWindowHandle()const;
+	HWND& GetWindowHandle();
 };
 
