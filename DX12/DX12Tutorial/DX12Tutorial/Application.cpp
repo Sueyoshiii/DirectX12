@@ -75,6 +75,8 @@ void Application::Initialize()
 {
 	InitWindow();
 
+
+
 	if (handle == nullptr)
 	{
 		LPVOID messageBuffer = nullptr;
@@ -112,6 +114,7 @@ void Application::Run()
 		{
 			break;
 		}
+		dx->Update();
 	}
 }
 
