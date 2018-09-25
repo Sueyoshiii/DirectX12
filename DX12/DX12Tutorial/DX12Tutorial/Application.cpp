@@ -5,8 +5,8 @@
 #include "DX12Wrapper.h"
 using namespace std;
 
-constexpr int WINDOW_WIDTH = 640;
-constexpr int WINDOW_HEIGHT = 480;
+constexpr int WINDOW_WIDTH = 1280;
+constexpr int WINDOW_HEIGHT = 720;
 
 //コールバック関数
 LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -73,9 +73,8 @@ void Application::InitWindow()
 
 void Application::Initialize()
 {
+	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	InitWindow();
-
-
 
 	if (handle == nullptr)
 	{
@@ -122,6 +121,7 @@ void Application::Terminate()
 {
 	WNDCLASSEX wnd = {};
 	UnregisterClass(wnd.lpszClassName, wnd.hInstance);
+	CoUninitialize();
 }
 
 Size Application::GetWindowSize()
