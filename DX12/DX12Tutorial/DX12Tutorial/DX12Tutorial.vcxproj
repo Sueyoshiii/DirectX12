@@ -124,11 +124,13 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="DX12Wrapper.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PMDModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DX12Wrapper.h" />
+    <ClInclude Include="PMDModel.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader.hlsl">

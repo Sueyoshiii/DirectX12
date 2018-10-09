@@ -1,6 +1,5 @@
 #include "DX12Wrapper.h"
 #include "Application.h"
-#include <DirectXMath.h>
 #include <DirectXTex.h>
 #include <Windows.h>
 #include <algorithm>
@@ -8,6 +7,7 @@
 #include <d3dcompiler.h>
 #include "d3dx12.h"
 #include <tchar.h>
+#include "PMDModel.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -54,6 +54,7 @@ DX12Wrapper::DX12Wrapper()
 		}
 	}
 
+	model.reset(new PMDModel("Model/初音ミク.pmd"));
 	
 	//コマンドキューオブジェクトの作成
 	D3D12_COMMAND_QUEUE_DESC commandQDesc = {};
@@ -181,7 +182,7 @@ void DX12Wrapper::Update()
 	descH.ptr += bbIdx * dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	commandList->OMSetRenderTargets(1, &descH, false, nullptr);
 
-	float color[] = { 0.0, 1.0, 0.0, 1.0 };
+	float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	//レンダーターゲットのクリア
 	commandList->ClearRenderTargetView(descH, color, 0, nullptr);
 
@@ -194,7 +195,8 @@ void DX12Wrapper::Update()
 	commandList->SetDescriptorHeaps(1, &srvDescHeap);
 
 	commandList->SetGraphicsRootDescriptorTable(0, srvDescHeap->GetGPUDescriptorHandleForHeapStart());
-	commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	commandList->DrawIndexedInstanced(model->pmdindices.size(), 1, 0, 0, 0);
+	//commandList->DrawInstanced(model->pmdvertices.size(), 1, 0, 0);
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -213,34 +215,46 @@ void DX12Wrapper::Update()
 void DX12Wrapper::CreateVertices()
 {
 	//Nの字になるよう配置
-	Vertex vertices[] = {
-		XMFLOAT3(-0.5f, -0.9f, 0.0f), XMFLOAT2(0.0f, 0.0f),
-		XMFLOAT3(-0.5f, 0.9f, 0.0f), XMFLOAT2(0.0f, 1.0f),
-		XMFLOAT3(0.5f, -0.9f, 0.0f), XMFLOAT2(1.0f, 0.0f),
-		XMFLOAT3(0.5f, 0.9f, 0.0f ), XMFLOAT2(1.0f, 1.0f),
-	};
+	//Vertex vertices[] = {
+	//	XMFLOAT3(5.0f, -5.0f, -5.0f ), XMFLOAT2(1.0f, 1.0f),
+	//	XMFLOAT3(-5.0f, -5.0f, -5.0f), XMFLOAT2(0.0f, 1.0f),
+	//	XMFLOAT3(5.0f, 5.0f, -5.0f), XMFLOAT2(1.0f, 0.0f),
+	//	XMFLOAT3(-5.0f, 5.0f, -5.0f), XMFLOAT2(0.0f, 0.0f),
+
+	//	XMFLOAT3(-5.0f, -5.0f, 5.0f), XMFLOAT2(1.0f, 1.0f),
+	//	XMFLOAT3(5.0f, -5.0f, 5.0f), XMFLOAT2(0.0f, 1.0f),
+	//	XMFLOAT3(-5.0f, 5.0f, 5.0f), XMFLOAT2(1.0f, 0.0f),
+	//	XMFLOAT3(5.0f, 5.0f, 5.0f), XMFLOAT2(0.0f, 0.0f),
+	//};
 
 	result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertices)),
+		&CD3DX12_RESOURCE_DESC::Buffer(model->pmdvertices.size() * sizeof(model->pmdvertices[0])),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&verticesBuff)
 	);
-	D3D12_RANGE range = { 0, 0 };
-	Vertex* vbuffptr = nullptr;
+	PMDVertex* vbuffptr = nullptr;
 	result = verticesBuff->Map(0, nullptr, (void**)&vbuffptr);
-	std::copy(std::begin(vertices), std::end(vertices), vbuffptr);
+	std::copy(model->pmdvertices.begin(), model->pmdvertices.end(), vbuffptr);
 
 	verticesBuff->Unmap(0, nullptr);
 
 	vbView = {};
 	vbView.BufferLocation = verticesBuff->GetGPUVirtualAddress();
-	vbView.SizeInBytes = sizeof(vertices);
-	vbView.StrideInBytes = sizeof(Vertex);
+	vbView.SizeInBytes = model->pmdvertices.size() * sizeof(model->pmdvertices[0]);
+	vbView.StrideInBytes = sizeof(PMDVertex);
 
-	std::vector<unsigned short> indices = { 0, 1, 3, 3, 2, 0 };
+	//std::vector<unsigned short> indices = { 
+	//	0, 1, 2, 1, 3, 2,
+	//	1, 4, 3, 4, 6, 3,
+	//	4, 5, 6, 5, 7, 6,
+	//	5, 0, 7, 0, 2, 7,
+	//	5, 4, 0, 4, 1, 0,
+	//	2, 3, 7, 3, 6, 7
+	//};
+	auto indices = model->pmdindices;
 
 	ID3D12Resource* indexBuff = nullptr;
 	result = dev->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
@@ -271,14 +285,15 @@ void DX12Wrapper::InitShaders()
 
 	D3D12_DESCRIPTOR_RANGE descTblRange[2] = {};
 	D3D12_ROOT_PARAMETER rootParam = {};
-	descTblRange[0].NumDescriptors = 1;
+
 	descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descTblRange[0].BaseShaderRegister = 0;
+	descTblRange[0].NumDescriptors = 1;
 	descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	descTblRange[1].NumDescriptors = 1;
 	descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	descTblRange[1].BaseShaderRegister = 0;
+	descTblRange[1].NumDescriptors = 1;
 	descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -331,11 +346,17 @@ void DX12Wrapper::InitShaders()
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
 		} , 
 		{
-			"TEXCOORD", 0,
-			DXGI_FORMAT_R32G32_FLOAT, 0,
+			"NORMAL", 0,
+			DXGI_FORMAT_R32G32B32_FLOAT, 0,
 			D3D12_APPEND_ALIGNED_ELEMENT,
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
-		}
+		},
+		//{
+		//	"TEXCOORD", 0,
+		//	DXGI_FORMAT_R32G32_FLOAT, 0,
+		//	D3D12_APPEND_ALIGNED_ELEMENT,
+		//	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+		//}
 	};
 
 
@@ -363,7 +384,7 @@ void DX12Wrapper::InitTexture()
 {
 	TexMetadata metadata = {};
 	ScratchImage img;
-	result = LoadFromWICFile(L"Site_Cat.png", WIC_FLAGS_NONE, &metadata, img);
+	result = LoadFromWICFile(L"img/Site_Cat.png", WIC_FLAGS_NONE, &metadata, img);
 
 	D3D12_HEAP_PROPERTIES heaprop = {};
 	heaprop.Type = D3D12_HEAP_TYPE_CUSTOM;
@@ -431,8 +452,8 @@ void DX12Wrapper::InitTexture()
 		)
 	);
 	commandList->Close();
-	ExecuteCommand();
-	WaitExecute();
+	//ExecuteCommand();
+	//WaitExecute();
 
 	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
 	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -453,7 +474,21 @@ void DX12Wrapper::InitTexture()
 
 void DX12Wrapper::InitConstants()
 {
-	XMMATRIX matrix = XMMatrixIdentity();
+	Application& app = Application::Instance();
+	auto wsize = app.GetWindowSize();
+	auto angle = (XM_PI / 4.0f);
+	XMMATRIX matrix = /*XMMatrixIdentity()*/XMMatrixRotationY(angle);
+	XMFLOAT3 eye(0, 10, -20);
+	XMFLOAT3 target(0, 10, 0);
+	XMFLOAT3 up(0, 1, 0);
+
+	matrix *= XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+	matrix *= XMMatrixPerspectiveFovLH(
+		XM_PIDIV2, 
+		static_cast<float>(wsize.w) / static_cast<float>(wsize.h),
+		0.1f,
+		300.0f);
+
 	size_t size = sizeof(matrix);
 
 	size = (size + 0xff) & ~0xff;
@@ -466,9 +501,13 @@ void DX12Wrapper::InitConstants()
 		nullptr,
 		IID_PPV_ARGS(&cBuff)
 	);
-	XMMATRIX* m = nullptr;
-	result = cBuff->Map(0, nullptr, (void**)&m);
-	*m += matrix;D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+	mappedMatrix = nullptr;
+	result = cBuff->Map(0, nullptr, (void**)&mappedMatrix);
+	*mappedMatrix = matrix;
+	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+	//XMMATRIX* m = nullptr;
+	//result = cBuff->Map(0, nullptr, (void**)&m);
+	//*m += matrix;D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = cBuff->GetGPUVirtualAddress();
 	desc.SizeInBytes = size;
 	auto handle = srvDescHeap->GetCPUDescriptorHandleForHeapStart();

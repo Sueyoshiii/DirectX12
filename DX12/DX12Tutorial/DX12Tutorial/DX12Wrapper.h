@@ -3,6 +3,10 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
+#include <DirectXMath.h>
+#include <memory>
+
+class PMDModel;
 
 class DX12Wrapper
 {
@@ -22,6 +26,7 @@ private:
 	ID3D12Resource* verticesBuff;
 	ID3D12Resource* cBuff;
 
+	std::shared_ptr<PMDModel> model;
 	std::vector<ID3D12Resource*> backBuffers;
 
 	HRESULT result;
@@ -35,6 +40,10 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW vbView;
 	D3D12_INDEX_BUFFER_VIEW ibView;
 	D3D12_SHADER_RESOURCE_VIEW_DESC texView;
+
+	DirectX::XMMATRIX* mappedMatrix;
+	DirectX::XMMATRIX camera;
+	DirectX::XMMATRIX projection;
 public:
 	DX12Wrapper();
 	~DX12Wrapper();
