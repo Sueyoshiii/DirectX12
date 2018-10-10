@@ -1,6 +1,12 @@
 Texture2D<float4> tex:register(t0);
 SamplerState smp:register(s0);
-matrix mat:register(b0);
+//matrix mat:register(b0);
+
+cbuffer WVP : register(b0)
+{
+    matrix world;
+    matrix wvp;
+}
 
 struct Out {
     //float4 pos : POSITION;
@@ -14,12 +20,13 @@ struct Out {
 Out vs( float4 pos : POSITION, /*float2 uv:TEXCOORD*/float4 normal : NORMAL )
 {
 	Out o;
-	pos = mul(mat, pos);
+    
+	pos = mul(wvp, pos);
     
 	o.svpos = pos;
 	//o.color = pos;
 	//o.uv = uv;
-    o.normal = normal;
+    o.normal = mul(world, normal);
 	return o;
 }
 

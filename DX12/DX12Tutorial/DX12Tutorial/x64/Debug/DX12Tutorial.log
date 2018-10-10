@@ -1,19 +1,24 @@
-﻿  DX12Wrapper.cpp
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(200): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(249): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(271): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(405): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(447): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(524): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(594): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(595): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+﻿FXC : warning X4717: Effects deprecated for D3DCompiler_47
+  
+  compilation object save succeeded; see C:\Users\Sueyoshiii\Desktop\RDirectX\DX12\DX12Tutorial\x64\Debug\shader.cso
+  Application.cpp
+  DX12Wrapper.cpp
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(201): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(250): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(272): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(407): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(449): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(527): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(597): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(598): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xutility(2440): warning C4996: 'std::copy::_Unchecked_iterators::_Deprecate': Call to 'std::copy' with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct. To disable this warning, use -D_SCL_SECURE_NO_WARNINGS. See documentation on how to use Visual C++ 'Checked Iterators'
   c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xutility(2440): note: 'std::copy::_Unchecked_iterators::_Deprecate' の宣言を確認してください
-  c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(243): note: コンパイル対象の関数 テンプレート インスタンス化 '_OutIt *std::copy<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Ty>>>,PMDVertex*>(_InIt,_InIt,_OutIt)' のリファレンスを確認してください
+  c:\users\sueyoshiii\desktop\rdirectx\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(244): note: コンパイル対象の関数 テンプレート インスタンス化 '_OutIt *std::copy<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Ty>>>,PMDVertex*>(_InIt,_InIt,_OutIt)' のリファレンスを確認してください
           with
           [
               _OutIt=PMDVertex *,
               _Ty=PMDVertex,
               _InIt=std::_Vector_iterator<std::_Vector_val<std::_Simple_types<PMDVertex>>>
           ]
+  コードを生成中...
   DX12Tutorial.vcxproj -> C:\Users\Sueyoshiii\Desktop\RDirectX\DX12\DX12Tutorial\x64\Debug\DX12Tutorial.exe

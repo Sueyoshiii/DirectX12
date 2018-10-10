@@ -8,6 +8,11 @@
 
 class PMDModel;
 
+struct TransformMaterices {
+	DirectX::XMMATRIX world;
+	DirectX::XMMATRIX wvp;
+};
+
 class DX12Wrapper
 {
 private:
@@ -33,7 +38,7 @@ private:
 
 	HRESULT result;
 
-	void CreateVertices();
+	void InitVertices();
 	void InitShaders();
 	void InitTexture();
 	void InitConstants();
@@ -48,7 +53,7 @@ private:
 	D3D12_SHADER_RESOURCE_VIEW_DESC texView;
 	D3D12_RESOURCE_DESC depthResDesc;
 
-	DirectX::XMMATRIX* mappedMatrix;
+	TransformMaterices* mappedMatrix;
 	DirectX::XMMATRIX world;
 	DirectX::XMMATRIX camera;
 	DirectX::XMMATRIX projection;

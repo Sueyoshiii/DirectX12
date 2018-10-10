@@ -123,8 +123,7 @@ DX12Wrapper::DX12Wrapper()
 	
 	fenceValue = 0;
 	result = dev->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-
-	CreateVertices();
+	InitVertices();
 	InitShaders();
 	InitTextureForDSV();
 	InitDescriptorHeapForDSV();
@@ -162,7 +161,9 @@ void DX12Wrapper::Update()
 
 	static float angle = 0.0f;
 	world = XMMatrixRotationY(angle);
-	*mappedMatrix = world * camera * projection;
+
+	mappedMatrix->world = world;
+	mappedMatrix->wvp = world * camera * projection;
 	angle += 0.001f;
 
 	D3D12_RESOURCE_BARRIER barrier;
@@ -215,7 +216,7 @@ void DX12Wrapper::Update()
 }
 
 //頂点情報を定義し、頂点バッファを作る
-void DX12Wrapper::CreateVertices()
+void DX12Wrapper::InitVertices()
 {
 	//Nの字になるよう配置
 	//Vertex vertices[] = {
@@ -380,6 +381,7 @@ void DX12Wrapper::InitShaders()
 	gpsDesc.SampleDesc.Count = 1;
 	gpsDesc.NumRenderTargets = 1;
 	gpsDesc.SampleMask = 0xffffff;
+	gpsDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineState = nullptr;
 
 	result = dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(&pipelineState));
@@ -482,7 +484,9 @@ void DX12Wrapper::InitConstants()
 	Application& app = Application::Instance();
 	auto wsize = app.GetWindowSize();
 	auto angle = (XM_PI / 4.0f);
-	XMMATRIX matrix = /*XMMatrixIdentity()*/XMMatrixRotationY(angle);
+	TransformMaterices matrix;
+	matrix.world = XMMatrixRotationY(angle);
+
 	XMFLOAT3 eye(0, 10, -20);
 	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
@@ -498,8 +502,7 @@ void DX12Wrapper::InitConstants()
 		0.1f,
 		300.0f);
 
-	matrix *= camera;
-	matrix *= projection;
+	matrix.wvp = matrix.world * camera * projection;
 
 	size_t size = sizeof(matrix);
 
