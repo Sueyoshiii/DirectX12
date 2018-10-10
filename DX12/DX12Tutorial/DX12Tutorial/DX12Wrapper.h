@@ -25,6 +25,8 @@ private:
 	ID3D12PipelineState* pipelineState;
 	ID3D12Resource* verticesBuff;
 	ID3D12Resource* cBuff;
+	ID3D12Resource* depthBuffer;
+	ID3D12DescriptorHeap* dsvHeap;
 
 	std::shared_ptr<PMDModel> model;
 	std::vector<ID3D12Resource*> backBuffers;
@@ -35,13 +37,19 @@ private:
 	void InitShaders();
 	void InitTexture();
 	void InitConstants();
+	void InitTextureForDSV();
+	void InitDescriptorHeapForDSV();
+	void InitDepthView();
+
 	D3D12_VIEWPORT SetViewPort();
 	D3D12_RECT SetRect();
 	D3D12_VERTEX_BUFFER_VIEW vbView;
 	D3D12_INDEX_BUFFER_VIEW ibView;
 	D3D12_SHADER_RESOURCE_VIEW_DESC texView;
+	D3D12_RESOURCE_DESC depthResDesc;
 
 	DirectX::XMMATRIX* mappedMatrix;
+	DirectX::XMMATRIX world;
 	DirectX::XMMATRIX camera;
 	DirectX::XMMATRIX projection;
 public:

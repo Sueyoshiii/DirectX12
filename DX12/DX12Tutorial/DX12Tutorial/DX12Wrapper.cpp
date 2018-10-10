@@ -55,7 +55,7 @@ DX12Wrapper::DX12Wrapper()
 	}
 
 	model.reset(new PMDModel("Model/初音ミク.pmd"));
-	
+
 	//コマンドキューオブジェクトの作成
 	D3D12_COMMAND_QUEUE_DESC commandQDesc = {};
 	commandQDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -126,17 +126,11 @@ DX12Wrapper::DX12Wrapper()
 
 	CreateVertices();
 	InitShaders();
+	InitTextureForDSV();
+	InitDescriptorHeapForDSV();
+	InitDepthView();
 	InitTexture();
 	InitConstants();
-}
-
-DX12Wrapper::~DX12Wrapper()
-{
-	commandAllocator->Release();
-	commandQueue->Release();
-	commandList->Release();
-	rtvDescHeap->Release();
-	dev->Release();
 }
 
 void DX12Wrapper::ExecuteCommand()
@@ -166,6 +160,11 @@ void DX12Wrapper::Update()
 
 	auto bbIdx = swapchain->GetCurrentBackBufferIndex();
 
+	static float angle = 0.0f;
+	world = XMMatrixRotationY(angle);
+	*mappedMatrix = world * camera * projection;
+	angle += 0.001f;
+
 	D3D12_RESOURCE_BARRIER barrier;
 	ZeroMemory(&barrier, sizeof(barrier));
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -180,11 +179,13 @@ void DX12Wrapper::Update()
 	//レンダーターゲットの指定
 	auto descH = rtvDescHeap->GetCPUDescriptorHandleForHeapStart();
 	descH.ptr += bbIdx * dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	commandList->OMSetRenderTargets(1, &descH, false, nullptr);
+	commandList->OMSetRenderTargets(1, &descH, false, &dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	//レンダーターゲットのクリア
 	commandList->ClearRenderTargetView(descH, color, 0, nullptr);
+	//深度バッファを毎フレームクリア
+	commandList->ClearDepthStencilView(dsvHeap->GetCPUDescriptorHandleForHeapStart(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	commandList->IASetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -195,10 +196,12 @@ void DX12Wrapper::Update()
 	commandList->SetDescriptorHeaps(1, &srvDescHeap);
 
 	commandList->SetGraphicsRootDescriptorTable(0, srvDescHeap->GetGPUDescriptorHandleForHeapStart());
+	
 	commandList->DrawIndexedInstanced(model->pmdindices.size(), 1, 0, 0, 0);
 	//commandList->DrawInstanced(model->pmdvertices.size(), 1, 0, 0);
 
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	//バリア設置
 	commandList->ResourceBarrier(1, &barrier);
@@ -362,8 +365,10 @@ void DX12Wrapper::InitShaders()
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsDesc = {};
 	gpsDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	gpsDesc.DepthStencilState.DepthEnable = false;
+	gpsDesc.DepthStencilState.DepthEnable = true;
 	gpsDesc.DepthStencilState.StencilEnable = false;
+	gpsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	gpsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	gpsDesc.VS = CD3DX12_SHADER_BYTECODE(vsBlob);
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(psBlob);
 	gpsDesc.InputLayout.NumElements = _countof(layout);
@@ -482,12 +487,19 @@ void DX12Wrapper::InitConstants()
 	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 
-	matrix *= XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
-	matrix *= XMMatrixPerspectiveFovLH(
+	camera = XMMatrixLookAtLH(
+		XMLoadFloat3(&eye), 
+		XMLoadFloat3(&target), 
+		XMLoadFloat3(&up));
+
+	projection = XMMatrixPerspectiveFovLH(
 		XM_PIDIV2, 
 		static_cast<float>(wsize.w) / static_cast<float>(wsize.h),
 		0.1f,
 		300.0f);
+
+	matrix *= camera;
+	matrix *= projection;
 
 	size_t size = sizeof(matrix);
 
@@ -516,6 +528,63 @@ void DX12Wrapper::InitConstants()
 	dev->CreateConstantBufferView(&desc, handle);
 }
 
+void DX12Wrapper::InitTextureForDSV()
+{
+	depthResDesc = {};
+	auto wsize = Application::Instance().GetWindowSize();
+	depthResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthResDesc.Width = wsize.w;
+	depthResDesc.Height = wsize.h;
+	depthResDesc.DepthOrArraySize = 1;
+	depthResDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthResDesc.SampleDesc.Count = 1;
+	depthResDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_HEAP_PROPERTIES depthHeapProp = {};
+	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	depthHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	depthHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+}
+
+void DX12Wrapper::InitDescriptorHeapForDSV()
+{
+	D3D12_CLEAR_VALUE depthClearValue = {};
+	depthClearValue.DepthStencil.Depth = 1.0f;
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&depthResDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthClearValue,
+		IID_PPV_ARGS(&depthBuffer)
+	);
+}
+
+void DX12Wrapper::InitDepthView()
+{
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeap = nullptr;
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	result = dev->CreateDescriptorHeap(
+		&dsvHeapDesc,
+		IID_PPV_ARGS(&dsvHeap)
+	);
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+	dev->CreateDepthStencilView(
+		depthBuffer,
+		&dsvDesc,
+		dsvHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+}
+
 D3D12_VIEWPORT DX12Wrapper::SetViewPort()
 {
 	D3D12_VIEWPORT viewPort;
@@ -539,4 +608,23 @@ D3D12_RECT DX12Wrapper::SetRect()
 	scissorrect.right = Application::Instance().GetWindowSize().w;
 	scissorrect.bottom = Application::Instance().GetWindowSize().h;
 	return scissorrect;
+}
+
+DX12Wrapper::~DX12Wrapper()
+{
+	fence->Release();
+	dev->Release();
+	rtvDescHeap->Release();
+	srvDescHeap->Release();
+	commandAllocator->Release();
+	commandList->Release();
+	commandQueue->Release();
+	dxgiFactory->Release();
+	swapchain->Release();
+	rootSignature->Release();
+	pipelineState->Release();
+	verticesBuff->Release();
+	cBuff->Release();
+	depthBuffer->Release();
+	dsvHeap->Release();
 }

@@ -3,7 +3,7 @@ SamplerState smp:register(s0);
 matrix mat:register(b0);
 
 struct Out {
-    float4 pos : POSITION;
+    //float4 pos : POSITION;
 	float4 svpos : SV_POSITION;
 	//float4 color : COLOR;
 	//float2 uv : TEXCOORD;
@@ -15,9 +15,7 @@ Out vs( float4 pos : POSITION, /*float2 uv:TEXCOORD*/float4 normal : NORMAL )
 {
 	Out o;
 	pos = mul(mat, pos);
-    normal = mul(mat, normal);
-
-    o.pos = pos;
+    
 	o.svpos = pos;
 	//o.color = pos;
 	//o.uv = uv;
@@ -28,6 +26,9 @@ Out vs( float4 pos : POSITION, /*float2 uv:TEXCOORD*/float4 normal : NORMAL )
 //ピクセルシェーダ
 float4 ps(Out o) : SV_Target
 {
-	//return float4(o.uv,1,1);
-	return float4( o.normal.rgb, 1);
+    float3 light = float3(-1, -1, -1);
+    //normalizeしないと正確な値が取れない
+    light = normalize(light);
+    float brightness = saturate(dot(light, o.normal.xyz)) + 0.2f;
+	return float4( brightness, brightness, brightness, 1);
 }
