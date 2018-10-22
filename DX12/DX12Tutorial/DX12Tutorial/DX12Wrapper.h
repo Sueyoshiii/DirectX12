@@ -13,6 +13,15 @@ struct TransformMaterices {
 	DirectX::XMMATRIX wvp;
 };
 
+struct Material {
+	Material() {}
+	Material(DirectX::XMFLOAT3& diff) : diffuse(DirectX::XMFLOAT4(diff.x, diff.y, diff.z, 1.f)) {}
+	Material(float r, float g, float b) : diffuse(DirectX::XMFLOAT4(r, g, b, 1.f)) {}
+	DirectX::XMFLOAT4 diffuse;	//ägéUîΩéÀ
+	DirectX::XMFLOAT4 specular;	//ãæñ îΩéÀ
+	DirectX::XMFLOAT3 ambient;	//ä¬ã´åıê¨ï™
+};
+
 class DX12Wrapper
 {
 private:
@@ -21,6 +30,8 @@ private:
 	ID3D12Device* dev;
 	ID3D12DescriptorHeap* rtvDescHeap;
 	ID3D12DescriptorHeap* srvDescHeap;
+	ID3D12DescriptorHeap* dsvHeap;
+	ID3D12DescriptorHeap* materialHeap;
 	ID3D12CommandAllocator* commandAllocator;
 	ID3D12GraphicsCommandList3* commandList;
 	ID3D12CommandQueue* commandQueue;
@@ -29,9 +40,9 @@ private:
 	ID3D12RootSignature* rootSignature;
 	ID3D12PipelineState* pipelineState;
 	ID3D12Resource* verticesBuff;
-	ID3D12Resource* cBuff;
+	ID3D12Resource* constantBuff;
 	ID3D12Resource* depthBuffer;
-	ID3D12DescriptorHeap* dsvHeap;
+	ID3D12Resource* materialBuff;
 
 	std::shared_ptr<PMDModel> model;
 	std::vector<ID3D12Resource*> backBuffers;
