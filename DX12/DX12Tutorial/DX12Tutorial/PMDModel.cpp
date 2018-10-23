@@ -2,6 +2,7 @@
 #include "iostream"
 
 
+
 PMDModel::PMDModel(const char* filepath)
 {
 	struct PMDHeader {
@@ -42,8 +43,38 @@ PMDModel::PMDModel(const char* filepath)
 	//}
 
 	fclose(fp);
+
+	for (int i = 0; i < materialNum; ++i)
+	{
+		if (pmdmaterices[i].texture_file_name[0] != '\0')
+		{
+			DirectX::LoadFromWICFile(ChangeWString(SetTex("model/", pmdmaterices[i].texture_file_name)).c_str(), 0, &texMeta, scImage);
+		}
+	}
 }
 
+std::string PMDModel::SetTex(const std::string path1, const std::string path2)
+{
+	int pathIndex1 = path1.rfind("/");
+	int pathIndex2 = path1.rfind("\\");
+	int pathIndex = max(pathIndex1, pathIndex2);
+
+	std::string folderPath = path1.substr(0, pathIndex) + "/" + path2;
+
+	return folderPath;
+}
+
+std::wstring PMDModel::ChangeWString(const std::string& st)
+{
+	auto byteSize = MultiByteToWideChar(CP_MACCP, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, st.c_str(), -1, nullptr, 0);
+
+	std::wstring wstr;
+	wstr.resize(byteSize);
+
+	byteSize = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, st.c_str(), -1, &wstr[0], byteSize);
+
+	return wstr;
+}
 
 PMDModel::~PMDModel()
 {

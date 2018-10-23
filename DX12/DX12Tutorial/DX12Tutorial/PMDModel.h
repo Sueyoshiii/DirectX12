@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include <DirectXMath.h>
+#include <d3d12.h>
+#include <DirectXTex.h>
 #pragma pack(1)
 struct PMDVertex {
 	DirectX::XMFLOAT3 pos;
@@ -27,9 +29,14 @@ struct PMDMaterial {
 };
 #pragma pack()
 
-struct PMDBone {
-	std::vector<unsigned char>* boneName;
-};
+//struct PMDBone {
+//	char boneName;
+//	unsigned short parentIndex;
+//	unsigned short tailIndex;
+//	unsigned char boneType;
+//	unsigned short IKboneIndex;
+//	
+//};
 
 class PMDModel
 {
@@ -38,6 +45,9 @@ private:
 	unsigned int vertexNum;
 	unsigned int indicesNum;
 	unsigned int materialNum;
+
+	std::string SetTex(const std::string path1, const std::string path2);
+	std::wstring ChangeWString(const std::string& st);
 public:
 	PMDModel(const char* filepath);
 	~PMDModel();
@@ -45,6 +55,9 @@ public:
 	std::vector<PMDVertex> pmdvertices;
 	std::vector<unsigned short> pmdindices;
 	std::vector<PMDMaterial> pmdmaterices;
+
+	DirectX::ScratchImage scImage;
+	DirectX::TexMetadata texMeta;
 
 	unsigned int vertex_size;
 };

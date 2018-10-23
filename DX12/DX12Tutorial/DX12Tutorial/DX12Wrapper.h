@@ -15,11 +15,11 @@ struct TransformMaterices {
 
 struct Material {
 	Material() {}
-	Material(DirectX::XMFLOAT3& diff) : diffuse(DirectX::XMFLOAT4(diff.x, diff.y, diff.z, 1.f)) {}
-	Material(float r, float g, float b) : diffuse(DirectX::XMFLOAT4(r, g, b, 1.f)) {}
+	Material(DirectX::XMFLOAT4& diff) : diffuse(DirectX::XMFLOAT4(diff.x, diff.y, diff.z, diff.w)) {}
+	Material(float r, float g, float b, float a) : diffuse(DirectX::XMFLOAT4(r, g, b, a)) {}
 	DirectX::XMFLOAT4 diffuse;	//ŠgU”½Ë
 	DirectX::XMFLOAT4 specular;	//‹¾–Ê”½Ë
-	DirectX::XMFLOAT3 ambient;	//ŠÂ‹«Œõ¬•ª
+	DirectX::XMFLOAT4 ambient;	//ŠÂ‹«Œõ¬•ª
 };
 
 class DX12Wrapper
@@ -56,6 +56,7 @@ private:
 	void InitTextureForDSV();
 	void InitDescriptorHeapForDSV();
 	void InitDepthView();
+
 
 	D3D12_VIEWPORT SetViewPort();
 	D3D12_RECT SetRect();

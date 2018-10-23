@@ -310,22 +310,26 @@ void DX12Wrapper::InitShaders()
 	//rootParam[1].DescriptorTable.pDescriptorRanges = &descTblRange2;
 	//rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	D3D12_DESCRIPTOR_RANGE descTblRange{};
+	D3D12_DESCRIPTOR_RANGE descTblRange[2]{};
 	D3D12_DESCRIPTOR_RANGE descTblRange2 = {};
 	D3D12_ROOT_PARAMETER rootParam[2] = {};
 	{
+		descTblRange[0].NumDescriptors = 1;
+		descTblRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		descTblRange[0].BaseShaderRegister = 0;
+		descTblRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		descTblRange.NumDescriptors = 1;
-		descTblRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		descTblRange.BaseShaderRegister = 0;
-		descTblRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+		descTblRange[1].NumDescriptors = 1;
+		descTblRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+		descTblRange[1].BaseShaderRegister = 0;
+		descTblRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 		descTblRange2.NumDescriptors = 1;
 		descTblRange2.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		descTblRange2.BaseShaderRegister = 1;
 		descTblRange2.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE::D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParam[0].Descriptor.RegisterSpace = 0;
 		rootParam[0].Descriptor.ShaderRegister = 0;
 		rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -371,7 +375,8 @@ void DX12Wrapper::InitShaders()
 		0,
 		signature->GetBufferPointer(),
 		signature->GetBufferSize(),
-		IID_PPV_ARGS(&rootSignature));
+		IID_PPV_ARGS(&rootSignature)
+	);
 
 	D3D12_INPUT_ELEMENT_DESC layout[] = {
 		{
@@ -386,12 +391,12 @@ void DX12Wrapper::InitShaders()
 			D3D12_APPEND_ALIGNED_ELEMENT,
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
 		},
-		//{
-		//	"TEXCOORD", 0,
-		//	DXGI_FORMAT_R32G32_FLOAT, 0,
-		//	D3D12_APPEND_ALIGNED_ELEMENT,
-		//	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
-		//}
+		{
+			"TEXCOORD", 0,
+			DXGI_FORMAT_R32G32_FLOAT, 0,
+			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0
+		}
 	};
 
 
