@@ -42,20 +42,22 @@ private:
 	ID3D12Resource* verticesBuff;
 	ID3D12Resource* constantBuff;
 	ID3D12Resource* depthBuffer;
-	ID3D12Resource* materialBuff;
+	ID3D12Resource* texbuff;
+	ID3D12Resource* whiteTexBuff;
+	//ID3D12Resource* materialBuff;
 
 	std::shared_ptr<PMDModel> model;
 	std::vector<ID3D12Resource*> backBuffers;
 
 	HRESULT result;
 
-	void InitVertices();
-	void InitShaders();
-	void InitTexture();
-	void InitConstants();
-	void InitTextureForDSV();
-	void InitDescriptorHeapForDSV();
-	void InitDepthView();
+	void InitVertices(void);
+	void InitShaders(void);
+	void InitTexture(void);
+	void InitConstants(void);
+	void InitTextureForDSV(void);
+	void InitDescriptorHeapForDSV(void);
+	void InitDepthView(void);
 
 
 	D3D12_VIEWPORT SetViewPort();
@@ -69,11 +71,17 @@ private:
 	DirectX::XMMATRIX world;
 	DirectX::XMMATRIX camera;
 	DirectX::XMMATRIX projection;
+
+	//白テクスチャ生成
+	void CreateWhite(void);
+	////黒テクスチャ生成
+	//void CreateBlack(void);
+
 public:
 	DX12Wrapper();
 	~DX12Wrapper();
-	void ExecuteCommand();
-	void WaitExecute();
-	void Update();
+	void ExecuteCommand(void);
+	void WaitExecute(void);
+	void Update(void);
 };
 

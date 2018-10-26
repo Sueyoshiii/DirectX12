@@ -3,6 +3,8 @@
 #include <DirectXMath.h>
 #include <d3d12.h>
 #include <DirectXTex.h>
+#include <memory>
+
 #pragma pack(1)
 struct PMDVertex {
 	DirectX::XMFLOAT3 pos;
@@ -46,19 +48,24 @@ private:
 	unsigned int indicesNum;
 	unsigned int materialNum;
 
+	//フォルダ名抽出
 	std::string SetTex(const std::string path1, const std::string path2);
+	//string→wstringへの変換
 	std::wstring ChangeWString(const std::string& st);
+
+	DirectX::ScratchImage img;
 public:
 	PMDModel(const char* filepath);
 	~PMDModel();
+
+	std::weak_ptr<ID3D12Device> dev;
 
 	std::vector<PMDVertex> pmdvertices;
 	std::vector<unsigned short> pmdindices;
 	std::vector<PMDMaterial> pmdmaterices;
 
-	DirectX::ScratchImage scImage;
-	DirectX::TexMetadata texMeta;
-
 	unsigned int vertex_size;
+
+	DirectX::TexMetadata pmdmetadata = {};
 };
 

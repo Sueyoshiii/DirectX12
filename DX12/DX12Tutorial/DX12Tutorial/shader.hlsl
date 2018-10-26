@@ -1,5 +1,7 @@
 Texture2D<float4> tex:register(t0);
 
+Texture2D<float4> wht : register(t1);
+
 SamplerState smp:register(s0);
 
 cbuffer WVP : register(b0)

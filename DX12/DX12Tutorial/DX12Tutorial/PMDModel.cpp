@@ -1,5 +1,7 @@
 #include "PMDModel.h"
 #include "iostream"
+#include <tchar.h>
+#include "DX12Wrapper.h"
 
 
 
@@ -44,11 +46,11 @@ PMDModel::PMDModel(const char* filepath)
 
 	fclose(fp);
 
-	for (int i = 0; i < materialNum; ++i)
+	for (int i = 0; i < 17; ++i)
 	{
 		if (pmdmaterices[i].texture_file_name[0] != '\0')
 		{
-			DirectX::LoadFromWICFile(ChangeWString(SetTex("model/", pmdmaterices[i].texture_file_name)).c_str(), 0, &texMeta, scImage);
+			DirectX::LoadFromWICFile(ChangeWString(SetTex("model/", pmdmaterices[i].texture_file_name)).c_str(), 0, &pmdmetadata, img);
 		}
 	}
 }
