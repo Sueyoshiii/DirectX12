@@ -8,6 +8,8 @@ cbuffer WVP : register(b0)
 {
     matrix world;
     matrix wvp;
+
+    int existTex;
 }
 
 cbuffer material : register(b1)
@@ -53,5 +55,6 @@ float4 ps(Out o) : SV_Target
     //spec = pow(spec, 10);
     float ambient = 0.6f;
     float brightness = (saturate(dot(light, o.normal.xyz)) + ambient);
-    return float4(brightness, brightness, brightness, 1) * diffuse;
+    float3 color = existTex ? tex.Sample(smp, o.uv).abg : diffuse;
+    return float4(color * brightness, 1)/* * diffuse*/;
 }

@@ -50,7 +50,7 @@ PMDModel::PMDModel(const char* filepath)
 	{
 		if (pmdmaterices[i].texture_file_name[0] != '\0')
 		{
-			DirectX::LoadFromWICFile(ChangeWString(SetTex("model/", pmdmaterices[i].texture_file_name)).c_str(), 0, &pmdmetadata, img);
+			DirectX::LoadFromWICFile(ChangeWString(SetTex("Model/", pmdmaterices[i].texture_file_name)).c_str(), 0, &pmdmetadata, img);
 		}
 	}
 }

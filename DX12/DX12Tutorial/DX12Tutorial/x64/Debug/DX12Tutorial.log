@@ -1,17 +1,18 @@
 ﻿  DX12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(252): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(266): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(450): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(475): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(548): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(565): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(605): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(677): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(701): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(702): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(251): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(265): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(349): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(465): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(497): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(557): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(574): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(614): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(690): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(714): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(715): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
 c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xutility(2440): warning C4996: 'std::copy::_Unchecked_iterators::_Deprecate': Call to 'std::copy' with parameters that may be unsafe - this call relies on the caller to check that the passed values are correct. To disable this warning, use -D_SCL_SECURE_NO_WARNINGS. See documentation on how to use Visual C++ 'Checked Iterators'
   c:\program files (x86)\microsoft visual studio\2017\community\vc\tools\msvc\14.13.26128\include\xutility(2440): note: 'std::copy::_Unchecked_iterators::_Deprecate' の宣言を確認してください
-  c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(246): note: コンパイル対象の関数 テンプレート インスタンス化 '_OutIt *std::copy<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Ty>>>,PMDVertex*>(_InIt,_InIt,_OutIt)' のリファレンスを確認してください
+  c:\users\sueyoshiii\desktop\3年開発\dx12\dx12tutorial\dx12tutorial\dx12wrapper.cpp(245): note: コンパイル対象の関数 テンプレート インスタンス化 '_OutIt *std::copy<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Ty>>>,PMDVertex*>(_InIt,_InIt,_OutIt)' のリファレンスを確認してください
           with
           [
               _OutIt=PMDVertex *,

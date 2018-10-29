@@ -1,6 +1,5 @@
 #include "DX12Wrapper.h"
 #include "Application.h"
-#include <DirectXTex.h>
 #include <Windows.h>
 #include <algorithm>
 #include <random>
@@ -204,7 +203,7 @@ void DX12Wrapper::Update(void)
 
 	unsigned int offset = 0;
 	auto mathandle = materialHeap->GetGPUDescriptorHandleForHeapStart();
-	ID3D12DescriptorHeap* matdescHeaps[] = { materialHeap };
+	ID3D12DescriptorHeap* matdescHeaps[] = { materialHeap , srvDescHeap};
 	commandList->SetDescriptorHeaps(1, &materialHeap);
 
 	for (auto& m : model->pmdmaterices)
@@ -310,8 +309,8 @@ void DX12Wrapper::InitShaders(void)
 	//rootParam[1].DescriptorTable.pDescriptorRanges = &descTblRange2;
 	//rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-	D3D12_DESCRIPTOR_RANGE descTblRange[3] = {};
-	D3D12_ROOT_PARAMETER rootParam[3] = {};
+	D3D12_DESCRIPTOR_RANGE descTblRange[4] = {};
+	D3D12_ROOT_PARAMETER rootParam[4] = {};
 	{
 		//テクスチャ用
 		descTblRange[0].NumDescriptors = 1;
@@ -345,6 +344,17 @@ void DX12Wrapper::InitShaders(void)
 		rootParam[2].DescriptorTable.NumDescriptorRanges = 1;
 		rootParam[2].DescriptorTable.pDescriptorRanges = &descTblRange[2];
 		rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+
+		descTblRange[3].NumDescriptors = model->pmdmaterices.size();
+		descTblRange[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		descTblRange[3].BaseShaderRegister = 1;
+		descTblRange[3].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		rootParam[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[3].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[3].DescriptorTable.pDescriptorRanges = &descTblRange[3];
+		rootParam[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	}
 
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
@@ -432,10 +442,15 @@ void DX12Wrapper::InitShaders(void)
 
 void DX12Wrapper::InitTexture(void)
 {
-	TexMetadata metadata = {};
-	ScratchImage img;
-	result = LoadFromWICFile(L"model/eye2.bmp", WIC_FLAGS_NONE, &metadata, img);
+	result = LoadFromWICFile(L"Model/eye2.bmp", WIC_FLAGS_NONE, &metadata, img);
 
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	descHeapDesc.NodeMask = 0;
+	descHeapDesc.NumDescriptors = 2;
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&srvDescHeap));
+	
 	D3D12_HEAP_PROPERTIES heaprop = {};
 	heaprop.Type = D3D12_HEAP_TYPE_CUSTOM;
 	heaprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
@@ -466,12 +481,19 @@ void DX12Wrapper::InitTexture(void)
 		IID_PPV_ARGS(&texbuff)
 	);
 
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	dev->CreateShaderResourceView(texbuff, &srvDesc, srvDescHeap->GetCPUDescriptorHandleForHeapStart());
+
 	result = texbuff->WriteToSubresource(
 		0,
 		nullptr,
 		img.GetPixels(),
 		metadata.width * 4,
-		img.GetPixelsSize()
+		metadata.height * 4
 	);
 	
 	commandAllocator->Reset();
@@ -486,19 +508,6 @@ void DX12Wrapper::InitTexture(void)
 	);
 	commandList->Close();
 
-	//D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
-	//descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	//descHeapDesc.NodeMask = 0;
-	//descHeapDesc.NumDescriptors = 2;
-	//descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	//dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&srvDescHeap));
-	//
-	//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	//srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	//srvDesc.Texture2D.MipLevels = 1;
-	//dev->CreateShaderResourceView(texbuff, &srvDesc, srvDescHeap->GetCPUDescriptorHandleForHeapStart());
 
 	img.Release();
 }
@@ -552,7 +561,7 @@ void DX12Wrapper::InitConstants(void)
 	descHeapDesc.NodeMask = 0;
 	descHeapDesc.NumDescriptors = 2;
 	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&srvDescHeap));
+	result = dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&srvDescHeap));
 
 	auto handle = srvDescHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -609,21 +618,25 @@ void DX12Wrapper::InitConstants(void)
 	handle = materialHeap->GetCPUDescriptorHandleForHeapStart();
 	for (int i = 0; i < model->pmdmaterices.size(); ++i)
 	{
-		D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-		cbvDesc.SizeInBytes = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-		cbvDesc.BufferLocation = matBuff[i]->GetGPUVirtualAddress();
-		dev->CreateConstantBufferView(&desc, handle);
-		handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		//desc.BufferLocation += D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-
-		if()
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = 1;
-		dev->CreateShaderResourceView(texbuff, &srvDesc, handle);
-		handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		if (model->pmdmaterices[i].texture_file_name[0] != '\0')
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+			cbvDesc.SizeInBytes = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+			cbvDesc.BufferLocation = matBuff[i]->GetGPUVirtualAddress();
+			dev->CreateConstantBufferView(&desc, handle);
+			handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			//desc.BufferLocation += D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+		}
+		else
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+			srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MipLevels = 1;
+			dev->CreateShaderResourceView(texbuff, &srvDesc, handle);
+			handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 	}
 
 	//for (auto& m : model->pmdmaterices)

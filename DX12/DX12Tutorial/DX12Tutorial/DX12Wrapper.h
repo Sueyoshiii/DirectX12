@@ -4,6 +4,7 @@
 #include <dxgi1_6.h>
 #include <vector>
 #include <DirectXMath.h>
+#include <DirectXTex.h>
 #include <memory>
 
 class PMDModel;
@@ -51,6 +52,9 @@ private:
 
 	HRESULT result;
 
+	DirectX::TexMetadata metadata;
+	DirectX::ScratchImage img;
+
 	void InitVertices(void);
 	void InitShaders(void);
 	void InitTexture(void);
@@ -76,7 +80,6 @@ private:
 	void CreateWhite(void);
 	////黒テクスチャ生成
 	//void CreateBlack(void);
-
 public:
 	DX12Wrapper();
 	~DX12Wrapper();
