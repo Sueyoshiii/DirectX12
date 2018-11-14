@@ -2,6 +2,8 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
+#include <DirectXMath.h>
+#include <DirectXTex\DirectXTex.h>
 
 class Dx12Wrapper
 {
@@ -37,14 +39,64 @@ private:
 	//頂点バッファ
 	ID3D12Resource* vertexBuffer;
 
+	//インデックスバッファ
+	ID3D12Resource* indexBuffer;
+
+	//テクスチャバッファ
+	ID3D12Resource* texBuffer;
+
+	//最終的に欲しいオブジェクト
+	ID3D12RootSignature* rootSignature;
+
+	//パイプラインステート
+	ID3D12PipelineState* pipelineState;
+
+	//ルートシグネチャを作るための材料
+	ID3DBlob* signature;
+
+	//エラー出たときの対処
+	ID3DBlob* error;
+
+	//RTV(レンダーターゲット)デスクリプタヒープ
+	ID3D12DescriptorHeap* rtvDescHeap;
+
+	//DSV(深度)デスクリプタヒープ
+	ID3D12DescriptorHeap* dsvDescHeap;
+
+	//その他(テクスチャ、定数)デスクリプタヒープ
+	ID3D12DescriptorHeap* rgstDescHeap;
+
+	//フェンス値
 	UINT fenceValue;
 
 	std::vector<ID3D12Resource*> renderTarget;
 
+	//インデックス配列
+	std::vector<unsigned short> index;
+
 	//実行処理
 	void ExecuteCommand(void);
+
 	//待ち処理
 	void WaitExecute(void);
+
+	//ビューポート設定
+	D3D12_VIEWPORT SetViewPort(void);
+
+	//シザー矩形設定
+	D3D12_RECT SetRect(void);
+
+	//頂点バッファビュー
+	D3D12_VERTEX_BUFFER_VIEW vbView;
+
+	//インデックスバッファビュー
+	D3D12_INDEX_BUFFER_VIEW ibView;
+
+	//
+	DirectX::TexMetadata metaData;
+
+	//
+	DirectX::ScratchImage Img;
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();

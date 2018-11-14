@@ -1,3 +1,10 @@
-﻿  Dx12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(113): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
-  DX12Re.vcxproj -> C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\Debug\DX12Re.exe
+﻿  Application.cpp
+  Dx12Wrapper.cpp
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(121): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(286): warning C4244: '=': 'UINT64' から 'UINT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(452): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(453): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+  コードを生成中...
+Dx12Wrapper.obj : error LNK2019: 未解決の外部シンボル "public: void __cdecl DirectX::ScratchImage::Release(void)" (?Release@ScratchImage@DirectX@@QAAXXZ) が関数 "public: __thiscall Dx12Wrapper::Dx12Wrapper(void)" (??0Dx12Wrapper@@QAE@XZ) で参照されました。
+Dx12Wrapper.obj : error LNK2019: 未解決の外部シンボル "long __cdecl DirectX::LoadFromWICFile(wchar_t const *,unsigned long,struct DirectX::TexMetadata *,class DirectX::ScratchImage &,class std::function<void __cdecl(struct IWICMetadataQueryReader *)>)" (?LoadFromWICFile@DirectX@@YAJPB_WKPAUTexMetadata@1@AAVScratchImage@1@V?$function@$$A6AXPAUIWICMetadataQueryReader@@@Z@std@@@Z) が関数 "public: __thiscall Dx12Wrapper::Dx12Wrapper(void)" (??0Dx12Wrapper@@QAE@XZ) で参照されました。
+C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\Debug\DX12Re.exe : fatal error LNK1120: 2 件の未解決の外部参照
