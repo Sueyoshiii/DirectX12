@@ -1,15 +1,4 @@
 ﻿FXC : warning X4717: Effects deprecated for D3DCompiler_47
   
   compilation object save succeeded; see C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\x64\Debug\Shader.cso
-  Application.cpp
-  Dx12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(121): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(170): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(286): warning C4244: '=': 'UINT64' から 'UINT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(452): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(453): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-  main.cpp
-  コードを生成中...
-Dx12Wrapper.obj : error LNK2019: 未解決の外部シンボル "public: void __cdecl DirectX::ScratchImage::Release(void)" (?Release@ScratchImage@DirectX@@QEAAXXZ) が関数 "public: __cdecl Dx12Wrapper::Dx12Wrapper(void)" (??0Dx12Wrapper@@QEAA@XZ) で参照されました。
-Dx12Wrapper.obj : error LNK2019: 未解決の外部シンボル "long __cdecl DirectX::LoadFromWICFile(wchar_t const *,unsigned long,struct DirectX::TexMetadata *,class DirectX::ScratchImage &,class std::function<void __cdecl(struct IWICMetadataQueryReader *)>)" (?LoadFromWICFile@DirectX@@YAJPEB_WKPEAUTexMetadata@1@AEAVScratchImage@1@V?$function@$$A6AXPEAUIWICMetadataQueryReader@@@Z@std@@@Z) が関数 "public: __cdecl Dx12Wrapper::Dx12Wrapper(void)" (??0Dx12Wrapper@@QEAA@XZ) で参照されました。
-C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\x64\Debug\DX12Re.exe : fatal error LNK1120: 2 件の未解決の外部参照
+  DX12Re.vcxproj -> C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\x64\Debug\DX12Re.exe

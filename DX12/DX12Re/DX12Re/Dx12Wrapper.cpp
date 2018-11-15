@@ -247,8 +247,6 @@ Dx12Wrapper::Dx12Wrapper()
 
 	//テクスチャオブジェクト生成
 	{
-		result = LoadFromWICFile(L"img/virtual_cat.png", WIC_FLAGS_NONE, &metaData, Img);
-
 		D3D12_HEAP_PROPERTIES heapprop = {};
 		heapprop.Type = D3D12_HEAP_TYPE_CUSTOM;
 		heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
@@ -287,17 +285,15 @@ Dx12Wrapper::Dx12Wrapper()
 		box.bottom = resDesc.Height;
 		box.front = 0;
 		box.back = 1;
-		//result = texBuffer->WriteToSubresource(
-		//	0,
-		//	&box,
-		//	&,
-		//	4 * 720,
-		//	4 * 720 * 720
-		//);
+		BYTE *data = (BYTE*)malloc(4 * 720 * 720);
+		result = texBuffer->WriteToSubresource(
+			0,
+			&box,
+			data,
+			4 * 720,
+			4 * 720 * 720
+		);
 
-		//テクスチャオブジェクトの生成は１回だけすればいいから恐らく初期化処理内でいいだろう
-		//しかしPDFだとこの後バリア＆フェンス待ちの配置がくる
-		//これはUpdateじゃなくてもいいのか?
 		commandList->ResourceBarrier(
 			1,
 			&CD3DX12_RESOURCE_BARRIER::Transition(
@@ -310,16 +306,31 @@ Dx12Wrapper::Dx12Wrapper()
 			1,
 			(ID3D12CommandList* const*)&commandList
 		);
+		ExecuteCommand();
+		WaitExecute();
 
-		//D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		//srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		//srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		//srvDesc.Texture2D.MipLevels = 1;
-		//srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		Img.Release();
+		//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
+		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;	//特別なフィルタを使用しない
+		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(U方向)
+		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(V方向)
+		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(W方向)
+		samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;	//MIPMAP上限なし
+		samplerDesc.MinLOD = 0.0f;	//MIPMAP下限なし
+		samplerDesc.MipLODBias = 0.0f;	//MIPMAPのバイアス
+		samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;	//エッジの色(黒透明)
+		samplerDesc.ShaderRegister = 0;	//使用するシェーダレジスタ(スロット)
+		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	//どのくらいのデータをシェーダに見せるか
+		samplerDesc.RegisterSpace = 0;	//0でいい
+		samplerDesc.MaxAnisotropy = 0;	//FilterがAnisotropyのときのみ有効
+		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//特に比較しない(ではなく常に否定)
 	}
-
 	//パイプラインステート
 	//パイプラインに関わる情報を格納していく
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsDesc = {};

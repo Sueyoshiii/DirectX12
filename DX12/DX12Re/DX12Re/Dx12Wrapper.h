@@ -3,7 +3,7 @@
 #include <dxgi1_6.h>
 #include <vector>
 #include <DirectXMath.h>
-#include <DirectXTex\DirectXTex.h>
+#include <DirectXTex.h>
 
 class Dx12Wrapper
 {
@@ -12,6 +12,7 @@ private:
 	ID3D12Device* dev;
 
 	//デスクリプタヒープ
+	//リソースの情報を格納した構造体
 	ID3D12DescriptorHeap* descriptorHeap;
 
 	//コマンドリスト
@@ -27,7 +28,8 @@ private:
 	//グラフィックスメモリ上に確保される領域を確保する仕組み
 	ID3D12CommandAllocator* commandAllocator;
 
-	//
+	//DirectXグラフィックスインストラクチャー
+	//グラフィックスのランタイムに依存する必要のない、低レベルタスクを管理する。
 	IDXGIFactory6* dxgi;
 
 	//GPUで描画した画像を実際の画面に反映させるための機能、情報
@@ -37,6 +39,7 @@ private:
 	ID3D12Fence* fence;
 
 	//頂点バッファ
+	//バッファってのは要素別にグループ化された完全型付きデータの集合のこと
 	ID3D12Resource* vertexBuffer;
 
 	//インデックスバッファ
@@ -91,12 +94,6 @@ private:
 
 	//インデックスバッファビュー
 	D3D12_INDEX_BUFFER_VIEW ibView;
-
-	//
-	DirectX::TexMetadata metaData;
-
-	//
-	DirectX::ScratchImage Img;
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();
