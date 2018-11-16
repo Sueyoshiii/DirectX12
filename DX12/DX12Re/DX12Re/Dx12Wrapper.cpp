@@ -3,6 +3,8 @@
 #include "d3dx12.h"
 #include <tchar.h>
 #include <d3dcompiler.h>
+#include <random>
+#include <functional>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -133,7 +135,7 @@ Dx12Wrapper::Dx12Wrapper()
 	fenceValue = 0;
 	result = dev->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
-	//コマンドリストのクローズ
+	////コマンドリストのクローズ
 	commandList->Close();
 
 	vertexBuffer = nullptr;
@@ -200,12 +202,137 @@ Dx12Wrapper::Dx12Wrapper()
 		&pixelShader, 
 		nullptr);
 
+	D3D12_HEAP_PROPERTIES heapprop = {};
+	heapprop.Type = D3D12_HEAP_TYPE_CUSTOM;
+	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+	heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+	heapprop.CreationNodeMask = 1;
+	heapprop.VisibleNodeMask = 1;
+
+	D3D12_RESOURCE_DESC heapDesc = {};
+	heapDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	heapDesc.Alignment = 0;
+	heapDesc.Width = TEX_SIZE_W;
+	heapDesc.Height = TEX_SIZE_H;
+	heapDesc.DepthOrArraySize = 1;
+	heapDesc.MipLevels = 0;
+	heapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	heapDesc.SampleDesc.Count = 1;
+	heapDesc.SampleDesc.Quality = 0;
+	heapDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	heapDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	result = dev->CreateCommittedResource(
+		&heapprop,
+		D3D12_HEAP_FLAG_NONE,
+		&heapDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&texBuffer)
+	);
+
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC desc{};
+		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+		desc.NodeMask = 0;
+		desc.NumDescriptors = 1;
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+		result = dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rgstDescHeap));
+	}
+
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Texture2D.MipLevels = 1;
+		
+		dev->CreateShaderResourceView(
+			texBuffer,
+			&desc,
+			rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
+		);
+	}
+
+	D3D12_RESOURCE_DESC resDesc = {};
+	resDesc = texBuffer->GetDesc();
+	D3D12_BOX box = {};
+	box.left = 0;
+	box.top = 0;
+	box.right = resDesc.Width;
+	box.bottom = resDesc.Height;
+	box.front = 0;
+	box.back = 1;
+	//BYTE *data = (BYTE*)malloc(4 * 720 * 720);
+	std::vector<unsigned char>data(4 * TEX_SIZE_W * TEX_SIZE_H);
+	for (auto& i : data)
+	{
+		std::random_device device;
+		auto n = std::bind(std::uniform_int_distribution<>(0, 255), std::mt19937_64(device()));
+		i = n();
+	}
+	//memset(&data[0], 255, sizeof(unsigned char) * data.size());
+	result = texBuffer->WriteToSubresource(
+		0,
+		&box,
+		&data[0],
+		4 * TEX_SIZE_W,
+		4 * TEX_SIZE_W * TEX_SIZE_H
+	);
+
+	//commandAllocator->Reset();
+	//commandList->Reset(commandAllocator, nullptr);
+	//commandList->ResourceBarrier(
+	//	1,
+	//	&CD3DX12_RESOURCE_BARRIER::Transition(
+	//		texBuffer,
+	//		D3D12_RESOURCE_STATE_COPY_DEST,
+	//		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+	//);
+	//commandList->Close();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
+	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;	//特別なフィルタを使用しない
+	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(U方向)
+	samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(V方向)
+	samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(W方向)
+	samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;	//MIPMAP上限なし
+	samplerDesc.MinLOD = 0.0f;	//MIPMAP下限なし
+	samplerDesc.MipLODBias = 0.0f;	//MIPMAPのバイアス
+	samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;	//エッジの色(黒透明)
+	samplerDesc.ShaderRegister = 0;	//使用するシェーダレジスタ(スロット)
+	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	//どのくらいのデータをシェーダに見せるか
+	samplerDesc.RegisterSpace = 0;	//0でいい
+	samplerDesc.MaxAnisotropy = 0;	//FilterがAnisotropyのときのみ有効
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//特に比較しない(ではなく常に否定)
+
+	D3D12_DESCRIPTOR_RANGE descRange = {};
+	descRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;	//シェーダリソース
+	descRange.BaseShaderRegister = 0;	//レジスタ番号(範囲内の記述子の数)
+	descRange.NumDescriptors = 1;	//デスクリプタの数(レジスタ空間)
+	descRange.RegisterSpace = 0;	//レジスタ空間
+	descRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	//(ルートシグネチャの先頭からの記述子内のオフセット)
+
 	D3D12_ROOT_PARAMETER rootParam = {};
 	rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParam.DescriptorTable.NumDescriptorRanges = 1;
+	rootParam.DescriptorTable.pDescriptorRanges = &descRange;
+	rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
 	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rsd.NumParameters = 1;
+	rsd.pParameters = &rootParam;
+	rsd.NumStaticSamplers = 1;
+	rsd.pStaticSamplers = &samplerDesc;
 
 	//CreateRootSignatureに渡すことができるようシリアライズ化
 	result = D3D12SerializeRootSignature(
@@ -245,92 +372,6 @@ Dx12Wrapper::Dx12Wrapper()
 		}
 	};
 
-	//テクスチャオブジェクト生成
-	{
-		D3D12_HEAP_PROPERTIES heapprop = {};
-		heapprop.Type = D3D12_HEAP_TYPE_CUSTOM;
-		heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-		heapprop.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-		heapprop.CreationNodeMask = 1;
-		heapprop.VisibleNodeMask = 1;
-
-		D3D12_RESOURCE_DESC heapDesc = {};
-		heapDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		heapDesc.Alignment = 0;
-		heapDesc.Width = TEX_SIZE_W;
-		heapDesc.Height = TEX_SIZE_H;
-		heapDesc.DepthOrArraySize = 1;
-		heapDesc.MipLevels = 0;
-		heapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		heapDesc.SampleDesc.Count = 1;
-		heapDesc.SampleDesc.Quality = 0;
-		heapDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		heapDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-		result = dev->CreateCommittedResource(
-			&heapprop,
-			D3D12_HEAP_FLAG_NONE,
-			&heapDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&texBuffer)
-		);
-
-		D3D12_RESOURCE_DESC resDesc = {};
-		resDesc = texBuffer->GetDesc();
-		D3D12_BOX box = {};
-		box.left = 0;
-		box.top = 0;
-		box.right = resDesc.Width;
-		box.bottom = resDesc.Height;
-		box.front = 0;
-		box.back = 1;
-		BYTE *data = (BYTE*)malloc(4 * 720 * 720);
-		result = texBuffer->WriteToSubresource(
-			0,
-			&box,
-			data,
-			4 * 720,
-			4 * 720 * 720
-		);
-
-		commandList->ResourceBarrier(
-			1,
-			&CD3DX12_RESOURCE_BARRIER::Transition(
-				texBuffer,
-				D3D12_RESOURCE_STATE_COPY_DEST,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-		);
-		commandList->Close();
-		commandQueue->ExecuteCommandLists(
-			1,
-			(ID3D12CommandList* const*)&commandList
-		);
-		ExecuteCommand();
-		WaitExecute();
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		srvDesc.Texture2D.MipLevels = 1;
-		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
-		D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
-		samplerDesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;	//特別なフィルタを使用しない
-		samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(U方向)
-		samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(V方向)
-		samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;	//絵が繰り返される(W方向)
-		samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;	//MIPMAP上限なし
-		samplerDesc.MinLOD = 0.0f;	//MIPMAP下限なし
-		samplerDesc.MipLODBias = 0.0f;	//MIPMAPのバイアス
-		samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;	//エッジの色(黒透明)
-		samplerDesc.ShaderRegister = 0;	//使用するシェーダレジスタ(スロット)
-		samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	//どのくらいのデータをシェーダに見せるか
-		samplerDesc.RegisterSpace = 0;	//0でいい
-		samplerDesc.MaxAnisotropy = 0;	//FilterがAnisotropyのときのみ有効
-		samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//特に比較しない(ではなく常に否定)
-	}
 	//パイプラインステート
 	//パイプラインに関わる情報を格納していく
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsDesc = {};
@@ -348,11 +389,12 @@ Dx12Wrapper::Dx12Wrapper()
 	//ターゲット数と設定するフォーマット数は一致させておく
 	gpsDesc.NumRenderTargets = 1;
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	//深度ステンシル
+	//深度ステンシル(未設定)
 	gpsDesc.DepthStencilState.DepthEnable = false;
 	gpsDesc.DepthStencilState.StencilEnable = false;
 	gpsDesc.DSVFormat;
 	//ラスタライザ
+	//コンピュータが扱う文字や画像を、色付きの小さな点で表現する
 	gpsDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	//その他
 	gpsDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -366,22 +408,6 @@ Dx12Wrapper::Dx12Wrapper()
 	result = dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(&pipelineState));
 }
 
-
-Dx12Wrapper::~Dx12Wrapper()
-{
-	dev->Release();
-	descriptorHeap->Release();
-	commandList->Release();
-	commandQueue->Release();
-	commandAllocator->Release();
-	dxgi->Release();
-	swapChain->Release();
-	fence->Release();
-	vertexBuffer->Release();
-	rootSignature->Release();
-	pipelineState->Release();
-}
-
 void Dx12Wrapper::Update(void)
 {
 	//アロケータリセット
@@ -391,6 +417,8 @@ void Dx12Wrapper::Update(void)
 
 	commandList->SetPipelineState(pipelineState);
 	commandList->SetGraphicsRootSignature(rootSignature);
+	commandList->SetDescriptorHeaps(1, &rgstDescHeap);
+	commandList->SetGraphicsRootDescriptorTable(0, rgstDescHeap->GetGPUDescriptorHandleForHeapStart());
 	commandList->RSSetViewports(1, &SetViewPort());
 	commandList->RSSetScissorRects(1, &SetRect());
 	auto heapStart = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
@@ -476,4 +504,19 @@ D3D12_RECT Dx12Wrapper::SetRect(void)
 	scissorrect.right = Application::Instance().GetWindowSize().w;
 	scissorrect.bottom = Application::Instance().GetWindowSize().h;
 	return scissorrect;
+}
+
+Dx12Wrapper::~Dx12Wrapper()
+{
+	dev->Release();
+	descriptorHeap->Release();
+	commandList->Release();
+	commandQueue->Release();
+	commandAllocator->Release();
+	dxgi->Release();
+	swapChain->Release();
+	fence->Release();
+	vertexBuffer->Release();
+	rootSignature->Release();
+	pipelineState->Release();
 }
