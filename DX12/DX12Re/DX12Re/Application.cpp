@@ -103,7 +103,7 @@ void Application::InitWindow(void)
 			nullptr,
 			GetLastError(),
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPSTR)&messageBuffer,
+			(LPWSTR)&messageBuffer,
 			0,
 			nullptr
 		);

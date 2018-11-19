@@ -2,8 +2,6 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
-#include <DirectXMath.h>
-#include <DirectXTex.h>
 
 class Dx12Wrapper
 {
@@ -69,6 +67,9 @@ private:
 	//その他(テクスチャ、定数)デスクリプタヒープ
 	ID3D12DescriptorHeap* rgstDescHeap;
 
+	//定数バッファ
+	ID3D12Resource* cBuffer;
+
 	//フェンス値
 	UINT fenceValue;
 
@@ -94,6 +95,7 @@ private:
 
 	//インデックスバッファビュー
 	D3D12_INDEX_BUFFER_VIEW ibView;
+
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();

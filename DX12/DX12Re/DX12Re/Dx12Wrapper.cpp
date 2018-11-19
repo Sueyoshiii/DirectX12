@@ -5,13 +5,13 @@
 #include <d3dcompiler.h>
 #include <random>
 #include <functional>
+#include <DirectXMath.h>
+#include <DirectXTex.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
-
-#define TEX_SIZE_W 720
-#define TEX_SIZE_H 720
+#pragma comment(lib, "DirectXTex.lib")
 
 using namespace DirectX;
 
@@ -23,6 +23,8 @@ struct Vertex {
 Dx12Wrapper::Dx12Wrapper()
 {
 	HRESULT result = S_OK;
+	result = CoInitializeEx(nullptr, 0);
+
 	//可能な限り新しいバージョンを使うためのフィーチャーレベルの設定
 	D3D_FEATURE_LEVEL levels[] =
 	{
@@ -56,10 +58,10 @@ Dx12Wrapper::Dx12Wrapper()
 
 	//頂点情報の作成
 	Vertex vertex[] = {
-		{ {-0.5f, -0.9f, 0.0f}, {0.0f, 0.0f} },
-		{ {-0.5f, 0.9f, 0.0f}, {1.0f, 0.0f} },
-		{ {0.5f, -0.9f, 0.0f}, {0.0f, 1.0f} },
-		{ {0.5f, 0.9f, 0.0f}, {1.0f, 1.0f} }
+		{ {-0.5f, -0.9f, 0.0f}, {0.0f, 1.0f} },
+		{ {-0.5f, 0.9f, 0.0f}, {0.0f, 0.0f} },
+		{ {0.5f, -0.9f, 0.0f}, {1.0f, 1.0f} },
+		{ {0.5f, 0.9f, 0.0f}, {1.0f, 0.0f} }
 	};
 
 	IDXGIFactory4* factory = nullptr;
@@ -102,12 +104,17 @@ Dx12Wrapper::Dx12Wrapper()
 	);
 
 
+	TexMetadata metadata;
+	ScratchImage Img;
+	result = LoadFromWICFile(L"img/virtual_cat.bmp", 0, &metadata, Img);
+
+
 	//レンダーターゲットの作成
 	//表示画面用メモリ確保
 	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
 	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;	//レンダーターゲットビュー
 	descHeapDesc.NodeMask = 0;
-	descHeapDesc.NumDescriptors = 2;					//表画面と裏画面ぶん
+	descHeapDesc.NumDescriptors = 2;	//表画面と裏画面ぶん
 	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	result = dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&descriptorHeap));
 
@@ -212,8 +219,8 @@ Dx12Wrapper::Dx12Wrapper()
 	D3D12_RESOURCE_DESC heapDesc = {};
 	heapDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	heapDesc.Alignment = 0;
-	heapDesc.Width = TEX_SIZE_W;
-	heapDesc.Height = TEX_SIZE_H;
+	heapDesc.Width = metadata.width;
+	heapDesc.Height = metadata.height;
 	heapDesc.DepthOrArraySize = 1;
 	heapDesc.MipLevels = 0;
 	heapDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -231,29 +238,47 @@ Dx12Wrapper::Dx12Wrapper()
 		IID_PPV_ARGS(&texBuffer)
 	);
 
-	{
-		D3D12_DESCRIPTOR_HEAP_DESC desc{};
-		desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		desc.NodeMask = 0;
-		desc.NumDescriptors = 1;
-		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-		result = dev->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rgstDescHeap));
-	}
+	D3D12_DESCRIPTOR_HEAP_DESC rgstDesc{};
+	rgstDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	rgstDesc.NodeMask = 0;
+	rgstDesc.NumDescriptors = 2;
+	rgstDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = dev->CreateDescriptorHeap(&rgstDesc, IID_PPV_ARGS(&rgstDescHeap));
 
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.Texture2D.MipLevels = 1;
+	size_t size = sizeof(metadata);
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(4 * ((size + 0xff) &~0xff)),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&cBuffer)
+	);
+	auto handle = rgstDescHeap->GetCPUDescriptorHandleForHeapStart();
+	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = size;
+	dev->CreateConstantBufferView(&cbvDesc, handle);
+
+	///
+	//	続きは確保したバッファをマップするところから
+	///
+	
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
 		
-		dev->CreateShaderResourceView(
-			texBuffer,
-			&desc,
-			rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
-		);
-	}
+	dev->CreateShaderResourceView(
+		texBuffer,
+		&srvDesc,
+		rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+
 
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc = texBuffer->GetDesc();
@@ -265,7 +290,7 @@ Dx12Wrapper::Dx12Wrapper()
 	box.front = 0;
 	box.back = 1;
 	//BYTE *data = (BYTE*)malloc(4 * 720 * 720);
-	std::vector<unsigned char>data(4 * TEX_SIZE_W * TEX_SIZE_H);
+	std::vector<unsigned char>data(4 * metadata.width * metadata.height);
 	for (auto& i : data)
 	{
 		std::random_device device;
@@ -276,9 +301,9 @@ Dx12Wrapper::Dx12Wrapper()
 	result = texBuffer->WriteToSubresource(
 		0,
 		&box,
-		&data[0],
-		4 * TEX_SIZE_W,
-		4 * TEX_SIZE_W * TEX_SIZE_H
+		Img.GetPixels(),
+		4 * metadata.width,
+		4 * metadata.height
 	);
 
 	//commandAllocator->Reset();
@@ -291,12 +316,6 @@ Dx12Wrapper::Dx12Wrapper()
 	//		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	//);
 	//commandList->Close();
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 	//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -314,23 +333,36 @@ Dx12Wrapper::Dx12Wrapper()
 	samplerDesc.MaxAnisotropy = 0;	//FilterがAnisotropyのときのみ有効
 	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//特に比較しない(ではなく常に否定)
 
-	D3D12_DESCRIPTOR_RANGE descRange = {};
-	descRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;	//シェーダリソース
-	descRange.BaseShaderRegister = 0;	//レジスタ番号(範囲内の記述子の数)
-	descRange.NumDescriptors = 1;	//デスクリプタの数(レジスタ空間)
-	descRange.RegisterSpace = 0;	//レジスタ空間
-	descRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	//(ルートシグネチャの先頭からの記述子内のオフセット)
+	D3D12_DESCRIPTOR_RANGE descRange[2] = {};
+	D3D12_ROOT_PARAMETER rootParam[2] = {};
+	{
+		//テクスチャ用
+		descRange[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;	//シェーダリソース
+		descRange[0].BaseShaderRegister = 0;	//レジスタ番号(範囲内の記述子の数)
+		descRange[0].NumDescriptors = 1;	//デスクリプタの数(レジスタ空間)
+		descRange[0].RegisterSpace = 0;	//レジスタ空間
+		descRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	//(ルートシグネチャの先頭からの記述子内のオフセット)
 
-	D3D12_ROOT_PARAMETER rootParam = {};
-	rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	rootParam.DescriptorTable.NumDescriptorRanges = 1;
-	rootParam.DescriptorTable.pDescriptorRanges = &descRange;
-	rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[0].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[0].DescriptorTable.pDescriptorRanges = &descRange[0];
+		rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
+		//定数バッファ用
+		descRange[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;	//定数バッファ
+		descRange[1].BaseShaderRegister = 0;
+		descRange[1].NumDescriptors = 1;
+		descRange[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[1].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[1].DescriptorTable.pDescriptorRanges = &descRange[1];
+		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	}
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
 	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsd.NumParameters = 1;
-	rsd.pParameters = &rootParam;
+	rsd.NumParameters = _countof(rootParam);
+	rsd.pParameters = rootParam;
 	rsd.NumStaticSamplers = 1;
 	rsd.pStaticSamplers = &samplerDesc;
 
@@ -519,4 +551,6 @@ Dx12Wrapper::~Dx12Wrapper()
 	vertexBuffer->Release();
 	rootSignature->Release();
 	pipelineState->Release();
+
+	CoUninitialize();
 }
