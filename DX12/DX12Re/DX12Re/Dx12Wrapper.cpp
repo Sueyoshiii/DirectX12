@@ -5,7 +5,6 @@
 #include <d3dcompiler.h>
 #include <random>
 #include <functional>
-#include <DirectXMath.h>
 #include <DirectXTex.h>
 
 #pragma comment(lib, "d3d12.lib")
@@ -23,6 +22,10 @@ struct Vertex {
 Dx12Wrapper::Dx12Wrapper()
 {
 	HRESULT result = S_OK;
+
+	//COM(Component Object Model)ライブラリを呼び出しスレッドで使用するために初期化し
+	//スレッドの同時実行モデルを設定し
+	//必要に応じてスレッドの新しいアパートメントを作成する。
 	result = CoInitializeEx(nullptr, 0);
 
 	//可能な限り新しいバージョンを使うためのフィーチャーレベルの設定
@@ -106,7 +109,7 @@ Dx12Wrapper::Dx12Wrapper()
 
 	TexMetadata metadata;
 	ScratchImage Img;
-	result = LoadFromWICFile(L"img/virtual_cat.bmp", 0, &metadata, Img);
+	result = LoadFromWICFile(L"img/virtual_cat2.bmp", 0, &metadata, Img);
 
 
 	//レンダーターゲットの作成
@@ -239,46 +242,6 @@ Dx12Wrapper::Dx12Wrapper()
 	);
 
 
-	D3D12_DESCRIPTOR_HEAP_DESC rgstDesc{};
-	rgstDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAGS::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	rgstDesc.NodeMask = 0;
-	rgstDesc.NumDescriptors = 2;
-	rgstDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	result = dev->CreateDescriptorHeap(&rgstDesc, IID_PPV_ARGS(&rgstDescHeap));
-
-	size_t size = sizeof(metadata);
-	result = dev->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(4 * ((size + 0xff) &~0xff)),
-		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&cBuffer)
-	);
-	auto handle = rgstDescHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
-	cbvDesc.SizeInBytes = size;
-	dev->CreateConstantBufferView(&cbvDesc, handle);
-
-	///
-	//	続きは確保したバッファをマップするところから
-	///
-	
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Texture2D.MipLevels = 1;
-		
-	dev->CreateShaderResourceView(
-		texBuffer,
-		&srvDesc,
-		rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
-	);
-
 
 	D3D12_RESOURCE_DESC resDesc = {};
 	resDesc = texBuffer->GetDesc();
@@ -289,7 +252,6 @@ Dx12Wrapper::Dx12Wrapper()
 	box.bottom = resDesc.Height;
 	box.front = 0;
 	box.back = 1;
-	//BYTE *data = (BYTE*)malloc(4 * 720 * 720);
 	std::vector<unsigned char>data(4 * metadata.width * metadata.height);
 	for (auto& i : data)
 	{
@@ -297,7 +259,6 @@ Dx12Wrapper::Dx12Wrapper()
 		auto n = std::bind(std::uniform_int_distribution<>(0, 255), std::mt19937_64(device()));
 		i = n();
 	}
-	//memset(&data[0], 255, sizeof(unsigned char) * data.size());
 	result = texBuffer->WriteToSubresource(
 		0,
 		&box,
@@ -305,17 +266,6 @@ Dx12Wrapper::Dx12Wrapper()
 		4 * metadata.width,
 		4 * metadata.height
 	);
-
-	//commandAllocator->Reset();
-	//commandList->Reset(commandAllocator, nullptr);
-	//commandList->ResourceBarrier(
-	//	1,
-	//	&CD3DX12_RESOURCE_BARRIER::Transition(
-	//		texBuffer,
-	//		D3D12_RESOURCE_STATE_COPY_DEST,
-	//		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
-	//);
-	//commandList->Close();
 
 	//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -342,7 +292,7 @@ Dx12Wrapper::Dx12Wrapper()
 		descRange[0].NumDescriptors = 1;	//デスクリプタの数(レジスタ空間)
 		descRange[0].RegisterSpace = 0;	//レジスタ空間
 		descRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	//(ルートシグネチャの先頭からの記述子内のオフセット)
-
+		
 		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		rootParam[0].DescriptorTable.NumDescriptorRanges = 1;
 		rootParam[0].DescriptorTable.pDescriptorRanges = &descRange[0];
@@ -361,7 +311,7 @@ Dx12Wrapper::Dx12Wrapper()
 	}
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
 	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsd.NumParameters = _countof(rootParam);
+	rsd.NumParameters = 2;
 	rsd.pParameters = rootParam;
 	rsd.NumStaticSamplers = 1;
 	rsd.pStaticSamplers = &samplerDesc;
@@ -438,6 +388,73 @@ Dx12Wrapper::Dx12Wrapper()
 	gpsDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;//三角形
 	pipelineState = nullptr;
 	result = dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(&pipelineState));
+
+	//角度
+	auto angle = (XM_PI / 2.0f);
+	//行列
+	TransformMaterices matrix;
+	matrix.world = XMMatrixRotationY(angle);
+
+	XMFLOAT3 eye(0, 0, -30);
+	XMFLOAT3 target(0, 0, 0);
+	XMFLOAT3 up(0, 1, 0);
+
+	view = XMMatrixLookAtLH(
+		XMLoadFloat3(&eye),
+		XMLoadFloat3(&target),
+		XMLoadFloat3(&up)
+	);
+
+	projection = XMMatrixPerspectiveFovLH(
+		XM_PIDIV2,
+		static_cast<float>(wsize.w) / static_cast<float>(wsize.h),
+		0.1f,
+		300.0f
+	);
+
+	matrix.wvp = matrix.world * view * projection;
+
+	size_t size = sizeof(matrix);
+	size = (size + 0xff) & ~0xff;
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(size),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&cBuffer)
+	);
+	mappedMatrix = nullptr;
+	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
+	*mappedMatrix = matrix;
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = size;
+
+	D3D12_DESCRIPTOR_HEAP_DESC rgstDesc{};
+	rgstDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	rgstDesc.NodeMask = 0;
+	rgstDesc.NumDescriptors = 2;
+	rgstDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = dev->CreateDescriptorHeap(&rgstDesc, IID_PPV_ARGS(&rgstDescHeap));
+
+	auto handle = rgstDescHeap->GetCPUDescriptorHandleForHeapStart();
+	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	dev->CreateConstantBufferView(&cbvDesc, handle);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	dev->CreateShaderResourceView(
+		texBuffer,
+		&srvDesc,
+		rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
+	);
 }
 
 void Dx12Wrapper::Update(void)

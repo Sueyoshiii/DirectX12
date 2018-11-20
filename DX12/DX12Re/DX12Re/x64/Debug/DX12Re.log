@@ -1,10 +1,10 @@
 ﻿  Dx12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(130): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(179): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(223): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(262): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(285): warning C4244: '=': 'UINT64' から 'UINT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(304): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(520): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(521): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(133): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(182): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(226): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(251): warning C4244: '=': 'UINT64' から 'UINT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(268): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(433): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(540): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(541): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
   DX12Re.vcxproj -> C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\x64\Debug\DX12Re.exe

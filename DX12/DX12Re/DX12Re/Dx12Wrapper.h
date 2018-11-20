@@ -2,6 +2,12 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
+#include <DirectXMath.h>
+
+struct TransformMaterices {
+	DirectX::XMMATRIX world;
+	DirectX::XMMATRIX wvp;
+};
 
 class Dx12Wrapper
 {
@@ -96,6 +102,14 @@ private:
 	//インデックスバッファビュー
 	D3D12_INDEX_BUFFER_VIEW ibView;
 
+	//マップされた行列
+	TransformMaterices* mappedMatrix;
+	//ワールド
+	DirectX::XMMATRIX world;
+	//ビュー
+	DirectX::XMMATRIX view;
+	//プロジェクション
+	DirectX::XMMATRIX projection;
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();
