@@ -2,7 +2,11 @@ Texture2D<float4> tex : register(t0);
 
 SamplerState smp : register(s0);
 
-matrix mat : register(b0);
+cbuffer Mat : register(b0)
+{
+    matrix wvp;
+    matrix world;
+}
 
 struct Out
 {
@@ -14,8 +18,8 @@ struct Out
 Out BasicVS(float4 pos : POSITION, float2 uv : TEXCOORD)
 {
     Out o;
-    o.svpos = pos;
-    o.pos = mul(mat, pos);
+    o.svpos = mul(world, pos);
+    o.pos = pos;
     o.uv = uv;
 
     return o;

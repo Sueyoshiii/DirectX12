@@ -61,10 +61,15 @@ Dx12Wrapper::Dx12Wrapper()
 
 	//頂点情報の作成
 	Vertex vertex[] = {
-		{ {-0.5f, -0.9f, 0.0f}, {0.0f, 1.0f} },
-		{ {-0.5f, 0.9f, 0.0f}, {0.0f, 0.0f} },
-		{ {0.5f, -0.9f, 0.0f}, {1.0f, 1.0f} },
-		{ {0.5f, 0.9f, 0.0f}, {1.0f, 0.0f} }
+		{ {-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f} },
+		{ {-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f} },
+		{ {0.5f, -0.5f, -0.5f}, {1.0f, 1.0f} },
+		{ {0.5f, 0.5f, -0.5f}, {1.0f, 0.0f} },
+
+		{ { 0.5f, -0.5f, 0.5f }, { 0.0f, 1.0f } },
+		{ { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f } },
+		{ { -0.5f, -0.5f, 0.5f }, { 1.0f, 1.0f } },
+		{ { -0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f } },
 	};
 
 	IDXGIFactory4* factory = nullptr;
@@ -109,7 +114,7 @@ Dx12Wrapper::Dx12Wrapper()
 
 	TexMetadata metadata;
 	ScratchImage Img;
-	result = LoadFromWICFile(L"img/virtual_cat2.bmp", 0, &metadata, Img);
+	result = LoadFromWICFile(L"img/virtual_cat.bmp", 0, &metadata, Img);
 
 
 	//レンダーターゲットの作成
@@ -142,10 +147,11 @@ Dx12Wrapper::Dx12Wrapper()
 	//コマンドリストの作成(知りたいのはコマンドリストの種別、第2引数)
 	result = dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
 
+	//フェンス作成
 	fenceValue = 0;
 	result = dev->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
-	////コマンドリストのクローズ
+	//コマンドリストのクローズ
 	commandList->Close();
 
 	vertexBuffer = nullptr;
@@ -167,7 +173,14 @@ Dx12Wrapper::Dx12Wrapper()
 	memcpy(vertmap, &vertex[0], sizeof(vertex));
 	vertexBuffer->Unmap(0, nullptr);
 
-	index = { 0, 1, 2, 1, 3, 2 };
+	index = { 
+		0, 1, 2, 1, 3, 2,
+		2, 3, 4, 3, 5, 4,
+		4, 5, 6, 5, 7, 6,
+		6, 7, 0, 7, 1, 0,
+
+		1, 7, 3, 7, 5, 3
+	};
 	result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
@@ -312,7 +325,7 @@ Dx12Wrapper::Dx12Wrapper()
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
 	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 	rsd.NumParameters = 2;
-	rsd.pParameters = rootParam;
+	rsd.pParameters = &rootParam[0];
 	rsd.NumStaticSamplers = 1;
 	rsd.pStaticSamplers = &samplerDesc;
 
@@ -395,7 +408,7 @@ Dx12Wrapper::Dx12Wrapper()
 	TransformMaterices matrix;
 	matrix.world = XMMatrixRotationY(angle);
 
-	XMFLOAT3 eye(0, 0, -30);
+	XMFLOAT3 eye(0, 0.5f, -1.5f);
 	XMFLOAT3 target(0, 0, 0);
 	XMFLOAT3 up(0, 1, 0);
 
@@ -424,9 +437,6 @@ Dx12Wrapper::Dx12Wrapper()
 		nullptr,
 		IID_PPV_ARGS(&cBuffer)
 	);
-	mappedMatrix = nullptr;
-	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
-	*mappedMatrix = matrix;
 
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
@@ -443,6 +453,10 @@ Dx12Wrapper::Dx12Wrapper()
 	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	dev->CreateConstantBufferView(&cbvDesc, handle);
+
+	mappedMatrix = nullptr;
+	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
+	*mappedMatrix = matrix;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -462,14 +476,26 @@ void Dx12Wrapper::Update(void)
 	//アロケータリセット
 	auto result = commandAllocator->Reset();
 	//コマンドリストリセット
-	result = commandList->Reset(commandAllocator, nullptr);
+	result = commandList->Reset(commandAllocator, pipelineState);
+
+	commandList->RSSetViewports(1, &SetViewPort());
+	commandList->RSSetScissorRects(1, &SetRect());
+
+	static float angle = 0.0f;
+	world = XMMatrixRotationY(angle);
+
+	mappedMatrix->world = world;
+	mappedMatrix->wvp = world * view * projection;
+	angle +=0.01f;
 
 	commandList->SetPipelineState(pipelineState);
 	commandList->SetGraphicsRootSignature(rootSignature);
 	commandList->SetDescriptorHeaps(1, &rgstDescHeap);
+	auto handle = rgstDescHeap->GetGPUDescriptorHandleForHeapStart();
 	commandList->SetGraphicsRootDescriptorTable(0, rgstDescHeap->GetGPUDescriptorHandleForHeapStart());
-	commandList->RSSetViewports(1, &SetViewPort());
-	commandList->RSSetScissorRects(1, &SetRect());
+	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	commandList->SetGraphicsRootDescriptorTable(1, handle);
+	
 	auto heapStart = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	//ポインタのハンドルをコピー
 	auto bbIndex = swapChain->GetCurrentBackBufferIndex();
@@ -477,7 +503,7 @@ void Dx12Wrapper::Update(void)
 	heapStart.ptr += bbIndex * dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//クリアカラー設定
 	float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-
+	
 	//リソースバリアの設定
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -497,7 +523,7 @@ void Dx12Wrapper::Update(void)
 	commandList->IASetIndexBuffer(&ibView);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+	commandList->DrawIndexedInstanced(24, 1, 0, 0, 0);
 
 	//リソースバリアの設定
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
