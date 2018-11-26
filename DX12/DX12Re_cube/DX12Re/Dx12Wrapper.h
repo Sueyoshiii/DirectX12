@@ -3,6 +3,9 @@
 #include <dxgi1_6.h>
 #include <vector>
 #include <DirectXMath.h>
+#include <DirectXTex.h>
+
+#pragma comment(lib, "DirectXTex.lib")
 
 struct TransformMaterices {
 	DirectX::XMMATRIX world;
@@ -110,6 +113,29 @@ private:
 	DirectX::XMMATRIX view;
 	//プロジェクション
 	DirectX::XMMATRIX projection;
+
+	DirectX::TexMetadata metadata;
+
+	DirectX::ScratchImage Img;
+
+	//頂点初期化
+	void InitVertex(void);
+	//コマンド系初期化
+	void InitCommand(void);
+	//スワップチェイン作成
+	void InitSwapchain(void);
+	//レンダーターゲットビュー作成
+	void InitRTV(void);
+	//ヒープ作成
+	void InitHeap(void);
+	//ボックス作成
+	void InitBox(void);
+	//ルートシグネチャ作成
+	void InitRootSignature(void);
+	//グラフィックスパイプラインステート作成
+	void InitGPS(void);
+	//コンスタントバッファビュー作成
+	void InitCBV(void);
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();
