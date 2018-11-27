@@ -68,8 +68,6 @@ Dx12Wrapper::Dx12Wrapper()
 
 	InitSwapchain();
 
-	result = LoadFromWICFile(L"img/virtual_cat2.bmp", 0, &metadata, Img);
-
 	InitRTV();
 
 	//フェンス作成
@@ -79,9 +77,7 @@ Dx12Wrapper::Dx12Wrapper()
 	//コマンドリストのクローズ
 	commandList->Close();
 
-	InitHeap();
-
-	InitBox();
+	InitTexture();
 
 	InitRootSignature();
 
@@ -140,9 +136,9 @@ void Dx12Wrapper::Update(void)
 
 	commandList->IASetVertexBuffers(0, 1, &vbView);
 	commandList->IASetIndexBuffer(&ibView);
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+	commandList->DrawIndexedInstanced(model->pmdindex.size(), 1, 0, 0, 0);
 
 	//リソースバリアの設定
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -203,17 +199,17 @@ D3D12_RECT Dx12Wrapper::SetRect(void)
 void Dx12Wrapper::InitVertex(void)
 {
 	//頂点情報の作成
-	Vertex vertex[] = {
-		{ { -0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f } },
-		{ { -0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f } },
-		{ { 0.5f, -0.5f, -0.5f },{ 1.0f, 1.0f } },
-		{ { 0.5f, 0.5f, -0.5f },{ 1.0f, 0.0f } },
+	//Vertex vertex[] = {
+	//	{ { -0.5f, -0.5f, -0.5f },{ 0.0f, 1.0f } },
+	//	{ { -0.5f, 0.5f, -0.5f },{ 0.0f, 0.0f } },
+	//	{ { 0.5f, -0.5f, -0.5f },{ 1.0f, 1.0f } },
+	//	{ { 0.5f, 0.5f, -0.5f },{ 1.0f, 0.0f } },
 
-		{ { 0.5f, -0.5f, 0.5f },{ 0.0f, 1.0f } },
-		{ { 0.5f, 0.5f, 0.5f },{ 0.0f, 0.0f } },
-		{ { -0.5f, -0.5f, 0.5f },{ 1.0f, 1.0f } },
-		{ { -0.5f, 0.5f, 0.5f },{ 1.0f, 0.0f } },
-	};
+	//	{ { 0.5f, -0.5f, 0.5f },{ 0.0f, 1.0f } },
+	//	{ { 0.5f, 0.5f, 0.5f },{ 0.0f, 0.0f } },
+	//	{ { -0.5f, -0.5f, 0.5f },{ 1.0f, 1.0f } },
+	//	{ { -0.5f, 0.5f, 0.5f },{ 1.0f, 0.0f } },
+	//};
 
 	IDXGIFactory4* factory = nullptr;
 	auto result = CreateDXGIFactory(IID_PPV_ARGS(&factory));
@@ -222,34 +218,35 @@ void Dx12Wrapper::InitVertex(void)
 	result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),	//CPUからGPUへ転送する用
 		D3D12_HEAP_FLAG_NONE,	//特別な指定なし
-		&CD3DX12_RESOURCE_DESC::Buffer(sizeof(vertex)),	//サイズ
+		&CD3DX12_RESOURCE_DESC::Buffer(model->pmdvertex.size() * sizeof(model->pmdvertex[0])),	//サイズ
 		D3D12_RESOURCE_STATE_GENERIC_READ,	//よくわからん
 		nullptr,	//nullptrでOK
 		IID_PPV_ARGS(&vertexBuffer)	//いつもの
 	);
 
 	vbView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-	vbView.SizeInBytes = sizeof(vertex);
-	vbView.StrideInBytes = sizeof(Vertex);
+	vbView.SizeInBytes = model->pmdvertex.size() * sizeof(model->pmdvertex[0]);
+	vbView.StrideInBytes = sizeof(PMDVertex);
 
 	char* vertmap = nullptr;
 	result = vertexBuffer->Map(0, nullptr, (void**)(&vertmap));
-	memcpy(vertmap, &vertex[0], sizeof(vertex));
+	memcpy(vertmap, &model->pmdvertex[0], model->pmdvertex.size() * sizeof(model->pmdvertex[0]));
 	vertexBuffer->Unmap(0, nullptr);
 
-	index = {
-		0, 1, 2, 1, 3, 2,
-		2, 3, 4, 3, 5, 4,
-		4, 5, 6, 5, 7, 6,
-		6, 7, 0, 7, 1, 0,
+	//index = {
+	//	0, 1, 2, 1, 3, 2,
+	//	2, 3, 4, 3, 5, 4,
+	//	4, 5, 6, 5, 7, 6,
+	//	6, 7, 0, 7, 1, 0,
 
-		1, 7, 3, 7, 5, 3,
-		6, 0, 4, 0, 2, 4
-	};
+	//	1, 7, 3, 7, 5, 3,
+	//	6, 0, 4, 0, 2, 4
+	//};
+	index = model->pmdindex;
 	result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(index.size() * sizeof(short)),
+		&CD3DX12_RESOURCE_DESC::Buffer(index.size() * sizeof(index[0])),
 		D3D12_RESOURCE_STATE_GENERIC_READ,
 		nullptr,
 		IID_PPV_ARGS(&indexBuffer)
@@ -257,11 +254,11 @@ void Dx12Wrapper::InitVertex(void)
 
 	ibView.BufferLocation = indexBuffer->GetGPUVirtualAddress();	//バッファの場所
 	ibView.Format = DXGI_FORMAT_R16_UINT;	//フォーマット(shortなのでR16)
-	ibView.SizeInBytes = index.size() * sizeof(short);	//総サイズ
+	ibView.SizeInBytes = index.size() * sizeof(index[0]);	//総サイズ
 
 	unsigned short* indmap = nullptr;
 	result = indexBuffer->Map(0, nullptr, (void**)(&indmap));
-	memcpy(indmap, &index[0], sizeof(unsigned short) * index.size());
+	memcpy(indmap, &index[0], index.size() * sizeof(index[0]));
 	indexBuffer->Unmap(0, nullptr);
 }
 
@@ -343,8 +340,34 @@ void Dx12Wrapper::InitRTV(void)
 
 }
 
-void Dx12Wrapper::InitHeap(void)
+void Dx12Wrapper::InitTexture(void)
 {
+	auto result = LoadFromWICFile(L"model/eye2.bmp", 0, &metadata, Img);
+
+	D3D12_DESCRIPTOR_HEAP_DESC rgstDesc = {};
+	rgstDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	rgstDesc.NodeMask = 0;
+	rgstDesc.NumDescriptors = 2;
+	rgstDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = dev->CreateDescriptorHeap(&rgstDesc, IID_PPV_ARGS(&rgstDescHeap));
+
+	//D3D12_RESOURCE_DESC resDesc = {};
+	//resDesc = texBuffer->GetDesc();
+	//D3D12_BOX box = {};
+	//box.left = 0;
+	//box.top = 0;
+	//box.right = resDesc.Width;
+	//box.bottom = resDesc.Height;
+	//box.front = 0;
+	//box.back = 1;
+	//std::vector<unsigned char>data(4 * metadata.width * metadata.height);
+	//for (auto& i : data)
+	//{
+	//	std::random_device device;
+	//	auto n = std::bind(std::uniform_int_distribution<>(0, 255), std::mt19937_64(device()));
+	//	i = n();
+	//}
+
 	D3D12_HEAP_PROPERTIES heapprop = {};
 	heapprop.Type = D3D12_HEAP_TYPE_CUSTOM;
 	heapprop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
@@ -365,7 +388,8 @@ void Dx12Wrapper::InitHeap(void)
 	heapDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	heapDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-	auto result = dev->CreateCommittedResource(
+	texBuffer = nullptr;
+	result = dev->CreateCommittedResource(
 		&heapprop,
 		D3D12_HEAP_FLAG_NONE,
 		&heapDesc,
@@ -374,34 +398,25 @@ void Dx12Wrapper::InitHeap(void)
 		IID_PPV_ARGS(&texBuffer)
 	);
 
-}
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
 
-void Dx12Wrapper::InitBox(void)
-{
-	D3D12_RESOURCE_DESC resDesc = {};
-	resDesc = texBuffer->GetDesc();
-	D3D12_BOX box = {};
-	box.left = 0;
-	box.top = 0;
-	box.right = resDesc.Width;
-	box.bottom = resDesc.Height;
-	box.front = 0;
-	box.back = 1;
-	std::vector<unsigned char>data(4 * metadata.width * metadata.height);
-	for (auto& i : data)
-	{
-		std::random_device device;
-		auto n = std::bind(std::uniform_int_distribution<>(0, 255), std::mt19937_64(device()));
-		i = n();
-	}
-	auto result = texBuffer->WriteToSubresource(
+	dev->CreateShaderResourceView(
+		texBuffer,
+		&srvDesc,
+		rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
+	);
+
+	result = texBuffer->WriteToSubresource(
 		0,
-		&box,
+		nullptr,
 		Img.GetPixels(),
 		4 * metadata.width,
 		4 * metadata.height
 	);
-
 }
 
 void Dx12Wrapper::InitRootSignature(void)
@@ -488,15 +503,24 @@ void Dx12Wrapper::InitGPS(void)
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
 			0
 		},
-			{
-				"TEXCOORD",
-				0,
-				DXGI_FORMAT_R32G32_FLOAT,
-				0,
-				D3D12_APPEND_ALIGNED_ELEMENT,
-				D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-				0
-			}
+		{
+			"NORMAL",
+			0,
+			DXGI_FORMAT_R32G32B32_FLOAT,
+			0,
+			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+			0
+		},
+		//{
+		//	"TEXCOORD",
+		//	0,
+		//	DXGI_FORMAT_R32G32_FLOAT,
+		//	0,
+		//	D3D12_APPEND_ALIGNED_ELEMENT,
+		//	D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+		//	0
+		//}
 	};
 
 
@@ -556,7 +580,7 @@ void Dx12Wrapper::InitGPS(void)
 	gpsDesc.SampleDesc.Quality = 0;//いる
 	gpsDesc.SampleMask = 0xffffffff;//全部1
 	gpsDesc.Flags;//デフォルトでOK
-	gpsDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;//三角形
+	gpsDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineState = nullptr;
 	result = dev->CreateGraphicsPipelineState(&gpsDesc, IID_PPV_ARGS(&pipelineState));
 
@@ -571,8 +595,8 @@ void Dx12Wrapper::InitCBV(void)
 	TransformMaterices matrix;
 	matrix.world = XMMatrixRotationY(angle);
 
-	XMFLOAT3 eye(0, 1, -1.5f);
-	XMFLOAT3 target(0, 0, 0);
+	XMFLOAT3 eye(0, 10, -15.0f);
+	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
 
 	view = XMMatrixLookAtLH(
@@ -605,13 +629,6 @@ void Dx12Wrapper::InitCBV(void)
 	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = size;
 
-	D3D12_DESCRIPTOR_HEAP_DESC rgstDesc{};
-	rgstDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	rgstDesc.NodeMask = 0;
-	rgstDesc.NumDescriptors = 2;
-	rgstDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	result = dev->CreateDescriptorHeap(&rgstDesc, IID_PPV_ARGS(&rgstDescHeap));
-
 	auto handle = rgstDescHeap->GetCPUDescriptorHandleForHeapStart();
 	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
@@ -621,17 +638,6 @@ void Dx12Wrapper::InitCBV(void)
 	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
 	*mappedMatrix = matrix;
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Texture2D.MipLevels = 1;
-
-	dev->CreateShaderResourceView(
-		texBuffer,
-		&srvDesc,
-		rgstDescHeap->GetCPUDescriptorHandleForHeapStart()
-	);
 }
 
 Dx12Wrapper::~Dx12Wrapper()

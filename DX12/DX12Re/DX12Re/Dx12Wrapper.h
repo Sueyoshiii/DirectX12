@@ -2,6 +2,7 @@
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <vector>
+#include <memory>
 #include <DirectXMath.h>
 #include <DirectXTex.h>
 
@@ -130,10 +131,8 @@ private:
 	void InitSwapchain(void);
 	//レンダーターゲットビュー作成
 	void InitRTV(void);
-	//ヒープ作成
-	void InitHeap(void);
-	//ボックス作成
-	void InitBox(void);
+	//テクスチャ作成
+	void InitTexture(void);
 	//ルートシグネチャ作成
 	void InitRootSignature(void);
 	//グラフィックスパイプラインステート作成
