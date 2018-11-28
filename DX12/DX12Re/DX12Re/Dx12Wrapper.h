@@ -17,7 +17,7 @@ class Dx12Wrapper
 {
 private:
 	//デバイス
-	ID3D12Device* dev;
+	ID3D12Device * dev;
 
 	//デスクリプタヒープ
 	//リソースの情報を格納した構造体
@@ -56,6 +56,18 @@ private:
 	//テクスチャバッファ
 	ID3D12Resource* texBuffer;
 
+	//マテリアルバッファ
+	ID3D12Resource* matBuffer;
+
+	//定数バッファ
+	ID3D12Resource* cBuffer;
+
+	//フェンス値
+	UINT fenceValue;
+
+	//深度バッファ
+	ID3D12Resource* depthBuffer;
+
 	//最終的に欲しいオブジェクト
 	ID3D12RootSignature* rootSignature;
 
@@ -77,17 +89,14 @@ private:
 	//その他(テクスチャ、定数)デスクリプタヒープ
 	ID3D12DescriptorHeap* rgstDescHeap;
 
-	//定数バッファ
-	ID3D12Resource* cBuffer;
-
-	//フェンス値
-	UINT fenceValue;
-
 	//レンダーターゲット
 	std::vector<ID3D12Resource*> renderTarget;
 
 	//インデックス配列
 	std::vector<unsigned short> index;
+
+	//マテリアル
+	std::vector<ID3D12Resource*> material;
 
 	//モデル
 	std::shared_ptr<PMDModel> model;

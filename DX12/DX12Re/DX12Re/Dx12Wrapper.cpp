@@ -117,7 +117,7 @@ void Dx12Wrapper::Update(void)
 	//オフセット
 	heapStart.ptr += bbIndex * dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	//クリアカラー設定
-	float clearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	
 	//リソースバリアの設定
 	D3D12_RESOURCE_BARRIER barrier = {};
@@ -130,9 +130,23 @@ void Dx12Wrapper::Update(void)
 	commandList->ResourceBarrier(1, &barrier);
 
 	//レンダーターゲット設定
-	commandList->OMSetRenderTargets(1, &heapStart, false, nullptr);
+	commandList->OMSetRenderTargets(
+		1, 
+		&heapStart, 
+		false, 
+		&dsvDescHeap->GetCPUDescriptorHandleForHeapStart()
+	);
 	//レンダーターゲットのクリア
 	commandList->ClearRenderTargetView(heapStart, clearColor, 0, nullptr);
+
+	commandList->ClearDepthStencilView(
+		dsvDescHeap->GetCPUDescriptorHandleForHeapStart(),
+		D3D12_CLEAR_FLAG_DEPTH,
+		1.0f,
+		0,
+		0,
+		nullptr
+	);
 
 	commandList->IASetVertexBuffers(0, 1, &vbView);
 	commandList->IASetIndexBuffer(&ibView);
@@ -417,6 +431,50 @@ void Dx12Wrapper::InitTexture(void)
 		4 * metadata.width,
 		4 * metadata.height
 	);
+
+	auto wsize = Application::Instance().GetWindowSize();
+	D3D12_RESOURCE_DESC depthResDesc = {};
+	depthResDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	depthResDesc.Width = wsize.w;
+	depthResDesc.Height = wsize.h;
+	depthResDesc.DepthOrArraySize = 1;
+	depthResDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	depthResDesc.SampleDesc.Count = 1;
+	depthResDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_HEAP_PROPERTIES depthHeapProp = {};
+	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
+	depthHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	depthHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+
+	D3D12_CLEAR_VALUE depthClearValue = {};
+	depthClearValue.DepthStencil.Depth = 1.0f;
+	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
+
+	depthBuffer = nullptr;
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&depthResDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthClearValue,
+		IID_PPV_ARGS(&depthBuffer)
+	);
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	result = dev->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvDescHeap));
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+	dev->CreateDepthStencilView(
+		depthBuffer, 
+		&dsvDesc, 
+		dsvDescHeap->GetCPUDescriptorHandleForHeapStart()
+	);
 }
 
 void Dx12Wrapper::InitRootSignature(void)
@@ -567,9 +625,11 @@ void Dx12Wrapper::InitGPS(void)
 	gpsDesc.NumRenderTargets = 1;
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	//深度ステンシル(未設定)
-	gpsDesc.DepthStencilState.DepthEnable = false;
+	gpsDesc.DepthStencilState.DepthEnable = true;
 	gpsDesc.DepthStencilState.StencilEnable = false;
-	gpsDesc.DSVFormat;
+	gpsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;//DSV必須
+	gpsDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;//小さい方を返す
+	gpsDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;//必須(DSV)
 	//ラスタライザ
 	//コンピュータが扱う文字や画像を、色付きの小さな点で表現する
 	gpsDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -588,11 +648,10 @@ void Dx12Wrapper::InitGPS(void)
 
 void Dx12Wrapper::InitCBV(void)
 {
-	auto wsize = Application::Instance().GetWindowSize();
 	//角度
 	auto angle = (XM_PI / 2.0f);
 	//行列
-	TransformMaterices matrix;
+	TransformMaterices matrix = {};
 	matrix.world = XMMatrixRotationY(angle);
 
 	XMFLOAT3 eye(0, 10, -15.0f);
@@ -604,6 +663,12 @@ void Dx12Wrapper::InitCBV(void)
 		XMLoadFloat3(&target),
 		XMLoadFloat3(&up)
 	);
+
+	auto wsize = Application::Instance().GetWindowSize();
+	matrix.wvp = 
+		matrix.world * 
+		XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up)) * 
+		XMMatrixPerspectiveFovLH(XM_PIDIV2, static_cast<float>(wsize.w) / static_cast<float>(wsize.h), 0.1f, 300.0f);
 
 	projection = XMMatrixPerspectiveFovLH(
 		XM_PIDIV2,
@@ -638,6 +703,14 @@ void Dx12Wrapper::InitCBV(void)
 	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
 	*mappedMatrix = matrix;
 
+	result = dev->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(size * material.size()),
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&matBuffer)
+	);
 }
 
 Dx12Wrapper::~Dx12Wrapper()
@@ -651,11 +724,14 @@ Dx12Wrapper::~Dx12Wrapper()
 	swapChain->Release();
 	fence->Release();
 	vertexBuffer->Release();
+	indexBuffer->Release();
+	texBuffer->Release();
+	matBuffer->Release();
+	cBuffer->Release();
 	rootSignature->Release();
 	pipelineState->Release();
 	signature->Release();
 	rgstDescHeap->Release();
-	cBuffer->Release();
 
 	CoUninitialize();
 }

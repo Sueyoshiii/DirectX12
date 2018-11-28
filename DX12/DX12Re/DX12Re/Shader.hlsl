@@ -4,8 +4,8 @@ SamplerState smp : register(s0);
 
 cbuffer Mat : register(b0)
 {
-    matrix wvp;
     matrix world;
+    matrix wvp;
 }
 
 struct Out
@@ -14,14 +14,15 @@ struct Out
     float4 pos : POSITION;
     float4 normal : NORMAL;
     //float2 uv : TEXCOORD;
+
 };
 
 Out BasicVS(float4 pos : POSITION, float4 normal : NORMAL/*, float2 uv : TEXCOORD*/)
 {
     Out o;
-    o.svpos = mul(world, pos);
+    o.svpos = mul(wvp, pos);
     o.pos = pos;
-    o.normal = normal;
+    o.normal = mul(world, normal);
     //o.uv = uv;
 
     return o;
@@ -29,6 +30,10 @@ Out BasicVS(float4 pos : POSITION, float4 normal : NORMAL/*, float2 uv : TEXCOOR
 
 float4 BasicPS(Out o) : SV_Target
 {
+    float3 light = float3(-1, -1, -1);
+    light = normalize(light);
+    float brightness = dot(o.normal.xyz, light);
+
     //return float4(tex.Sample(smp, o.uv).rgb, 1);
-    return float4(0, 0, 0, 1);
+    return float4(brightness, brightness, brightness, 1);
 }

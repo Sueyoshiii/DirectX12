@@ -29,6 +29,12 @@ PMDModel::PMDModel(const char* filepath)
 	pmdindex.resize(indexNum);
 	fread(pmdindex.data(), sizeof(unsigned short), pmdindex.size(), fp);
 
+	for (auto& material : pmdmaterial)
+	{
+		fread(&material, 46, 1, fp);
+		fread(&material.face_vert_count, 24, 1, fp);
+	}
+
 	fclose(fp);
 }
 
