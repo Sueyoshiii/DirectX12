@@ -1,13 +1,17 @@
-﻿  Application.cpp
-  Dx12Wrapper.cpp
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(155): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(195): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(196): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(242): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(271): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(348): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(396): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(433): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
-c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(695): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+﻿  Dx12Wrapper.cpp
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(209): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(210): warning C4244: '=': 'int' から 'FLOAT' への変換です。データが失われる可能性があります。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(256): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(285): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(362): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(410): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(447): warning C4267: '引数': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(542): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(718): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\dx12wrapper.cpp(752): warning C4267: '=': 'size_t' から 'UINT' に変換しました。データが失われているかもしれません。
+  PMDModel.cpp
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\pmdmodel.cpp(22): warning C4018: '<': signed と unsigned の数値を比較しようとしました。
+c:\users\sueyoshiii\desktop\3年開発\dx12\dx12re\dx12re\pmdmodel.cpp(12): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.17134.0\ucrt\stdio.h(208): note: 'fopen' の宣言を確認してください
   コードを生成中...
   DX12Re.vcxproj -> C:\Users\Sueyoshiii\Desktop\3年開発\DX12\DX12Re\x64\Debug\DX12Re.exe

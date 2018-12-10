@@ -13,6 +13,13 @@ struct TransformMaterices {
 	DirectX::XMMATRIX wvp;
 };
 
+struct Material
+{
+	DirectX::XMFLOAT3 diffuse;
+	DirectX::XMFLOAT3 speculler;
+	DirectX::XMFLOAT3 ambient;
+};
+
 class Dx12Wrapper
 {
 private:
@@ -74,17 +81,14 @@ private:
 	//パイプラインステート
 	ID3D12PipelineState* pipelineState;
 
-	//ルートシグネチャを作るための材料
-	ID3DBlob* signature;
-
-	//エラー出たときの対処
-	ID3DBlob* error;
-
 	//RTV(レンダーターゲット)デスクリプタヒープ
 	ID3D12DescriptorHeap* rtvDescHeap;
 
 	//DSV(深度)デスクリプタヒープ
 	ID3D12DescriptorHeap* dsvDescHeap;
+
+	//マテリアルデスクリプタヒープ
+	ID3D12DescriptorHeap* matDescHeap;
 
 	//その他(テクスチャ、定数)デスクリプタヒープ
 	ID3D12DescriptorHeap* rgstDescHeap;
@@ -94,9 +98,6 @@ private:
 
 	//インデックス配列
 	std::vector<unsigned short> index;
-
-	//マテリアル
-	std::vector<ID3D12Resource*> material;
 
 	//モデル
 	std::shared_ptr<PMDModel> model;
@@ -148,6 +149,8 @@ private:
 	void InitGPS(void);
 	//コンスタントバッファビュー作成
 	void InitCBV(void);
+	//マテリアル作成
+	void InitMaterial(void);
 public:
 	Dx12Wrapper();
 	~Dx12Wrapper();

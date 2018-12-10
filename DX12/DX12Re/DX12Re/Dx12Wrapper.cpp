@@ -84,6 +84,8 @@ Dx12Wrapper::Dx12Wrapper()
 	InitGPS();
 
 	InitCBV();
+
+	InitMaterial();
 }
 
 void Dx12Wrapper::Update(void)
@@ -152,7 +154,19 @@ void Dx12Wrapper::Update(void)
 	commandList->IASetIndexBuffer(&ibView);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	commandList->DrawIndexedInstanced(model->pmdindex.size(), 1, 0, 0, 0);
+	//commandList->DrawIndexedInstanced(model->pmdindex.size(), 1, 0, 0, 0);
+	unsigned int offset = 0;
+	auto matHandle = matDescHeap->GetGPUDescriptorHandleForHeapStart();
+	ID3D12DescriptorHeap* matDescHeaps[] = { matDescHeap };
+	commandList->SetDescriptorHeaps(1, matDescHeaps);
+	for (auto& m : model->pmdmaterial)
+	{
+		commandList->SetGraphicsRootDescriptorTable(1, matHandle);
+		matHandle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		auto idxcnt = m.face_vert_count;
+		commandList->DrawIndexedInstanced(idxcnt, 1, offset, 0, 0);
+		offset += idxcnt;
+	}
 
 	//リソースバリアの設定
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
@@ -479,8 +493,8 @@ void Dx12Wrapper::InitTexture(void)
 
 void Dx12Wrapper::InitRootSignature(void)
 {
-	D3D12_DESCRIPTOR_RANGE descRange[2] = {};
-	D3D12_ROOT_PARAMETER rootParam[2] = {};
+	D3D12_DESCRIPTOR_RANGE descRange[3] = {};
+	D3D12_ROOT_PARAMETER rootParam[3] = {};
 
 	//サンプラ(uvが0～1を超えたときどういう扱いをするかの設定)
 	D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
@@ -521,14 +535,30 @@ void Dx12Wrapper::InitRootSignature(void)
 		rootParam[1].DescriptorTable.NumDescriptorRanges = 1;
 		rootParam[1].DescriptorTable.pDescriptorRanges = &descRange[1];
 		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		//マテリアル用
+		descRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+		descRange[2].BaseShaderRegister = 1;
+		descRange[2].NumDescriptors = model->pmdmaterial.size();
+		descRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[2].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[2].DescriptorTable.pDescriptorRanges = &descRange[2];
+		rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	}
 
 	D3D12_ROOT_SIGNATURE_DESC rsd = {};
 	rsd.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsd.NumParameters = 2;
+	rsd.NumParameters = _countof(rootParam);
 	rsd.pParameters = &rootParam[0];
 	rsd.NumStaticSamplers = 1;
 	rsd.pStaticSamplers = &samplerDesc;
+
+	//ルートシグネチャを作るための材料
+	ID3DBlob* signature;
+	//エラー出たときの対処
+	ID3DBlob* error;
 
 	//CreateRootSignatureに渡すことができるようシリアライズ化
 	auto result = D3D12SerializeRootSignature(
@@ -657,7 +687,6 @@ void Dx12Wrapper::InitCBV(void)
 	XMFLOAT3 eye(0, 10, -15.0f);
 	XMFLOAT3 target(0, 10, 0);
 	XMFLOAT3 up(0, 1, 0);
-
 	view = XMMatrixLookAtLH(
 		XMLoadFloat3(&eye),
 		XMLoadFloat3(&target),
@@ -665,11 +694,6 @@ void Dx12Wrapper::InitCBV(void)
 	);
 
 	auto wsize = Application::Instance().GetWindowSize();
-	matrix.wvp = 
-		matrix.world * 
-		XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up)) * 
-		XMMatrixPerspectiveFovLH(XM_PIDIV2, static_cast<float>(wsize.w) / static_cast<float>(wsize.h), 0.1f, 300.0f);
-
 	projection = XMMatrixPerspectiveFovLH(
 		XM_PIDIV2,
 		static_cast<float>(wsize.w) / static_cast<float>(wsize.h),
@@ -689,7 +713,6 @@ void Dx12Wrapper::InitCBV(void)
 		nullptr,
 		IID_PPV_ARGS(&cBuffer)
 	);
-
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = cBuffer->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = size;
@@ -703,14 +726,49 @@ void Dx12Wrapper::InitCBV(void)
 	result = cBuffer->Map(0, nullptr, (void**)&mappedMatrix);
 	*mappedMatrix = matrix;
 
-	result = dev->CreateCommittedResource(
+}
+
+void Dx12Wrapper::InitMaterial(void)
+{
+	//マテリアルのサイズ
+	size_t size = sizeof(Material);
+	//256で
+	size = (size + 0xff) & ~0xff;
+	//マテリアル
+	auto mats = model->pmdmaterial;
+
+	//マテリアルバッファ作成
+	auto result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(size * material.size()),
+		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,	
+		&CD3DX12_RESOURCE_DESC::Buffer(size * mats.size()),	
 		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,
-		IID_PPV_ARGS(&matBuffer)
-	);
+		nullptr,		
+		IID_PPV_ARGS(&matBuffer));
+
+	//ヒープ作成
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	descHeapDesc.NumDescriptors = mats.size();
+	descHeapDesc.NodeMask = 0;
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	result = dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&matDescHeap));
+
+	//ビュー作成
+	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+	auto handle = matDescHeap->GetCPUDescriptorHandleForHeapStart();
+	for (auto m : mats)
+	{
+		desc.BufferLocation = matBuffer->GetGPUVirtualAddress();
+		dev->CreateConstantBufferView(&desc, handle);
+		desc.BufferLocation += size;
+		handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	}
+
+	char* matmap = nullptr;
+	result = matBuffer->Map(0, nullptr, (void**)&matmap);
+	memcpy(matmap, &mats[0], mats.size() * sizeof(mats[0]));
+	matBuffer->Unmap(0, nullptr);
 }
 
 Dx12Wrapper::~Dx12Wrapper()
@@ -730,7 +788,6 @@ Dx12Wrapper::~Dx12Wrapper()
 	cBuffer->Release();
 	rootSignature->Release();
 	pipelineState->Release();
-	signature->Release();
 	rgstDescHeap->Release();
 
 	CoUninitialize();

@@ -11,7 +11,7 @@ struct PMDVertex
 	unsigned short bone_num[2];	//ボーン番号1,2
 	unsigned char bone_weight;	//ボーン1に与える影響度
 	unsigned char edge_flag;	//0:通常, 1:エッジ無効
-	short etc;					//パディング(本当にこれでいいかは謎)
+	//short etc;					//パディング(本当にこれでいいかは謎)
 };
 #pragma pack()
 
@@ -39,6 +39,9 @@ private:
 
 	//インデックス数
 	unsigned int indexNum;
+
+	//マテリアル数
+	unsigned int materialNum;
 public:
 	PMDModel(const char* filepath);
 	~PMDModel();

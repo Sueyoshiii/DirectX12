@@ -8,6 +8,11 @@ cbuffer Mat : register(b0)
     matrix wvp;
 }
 
+cbuffer material : register(b1)
+{
+    float3 diffuse;
+}
+
 struct Out
 {
     float4 svpos : SV_POSITION;
@@ -32,8 +37,8 @@ float4 BasicPS(Out o) : SV_Target
 {
     float3 light = float3(-1, -1, -1);
     light = normalize(light);
-    float brightness = dot(o.normal.xyz, light);
+    float3 brightness = dot(o.normal.xyz, light);
 
     //return float4(tex.Sample(smp, o.uv).rgb, 1);
-    return float4(brightness, brightness, brightness, 1);
+    return float4(brightness * diffuse, 1);
 }

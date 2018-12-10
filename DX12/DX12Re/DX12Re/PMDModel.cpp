@@ -29,11 +29,26 @@ PMDModel::PMDModel(const char* filepath)
 	pmdindex.resize(indexNum);
 	fread(pmdindex.data(), sizeof(unsigned short), pmdindex.size(), fp);
 
+	fread(&materialNum, sizeof(materialNum), 1, fp);
+	pmdmaterial.resize(materialNum);
+
 	for (auto& material : pmdmaterial)
 	{
-		fread(&material, 46, 1, fp);
-		fread(&material.face_vert_count, 24, 1, fp);
+		fread(&material.diffuse_color, sizeof(DirectX::XMFLOAT3), 1, fp);
+		fread(&material.alpha, sizeof(float), 1, fp);
+		fread(&material.specularity, sizeof(float), 1, fp);
+		fread(&material.specular_color, sizeof(DirectX::XMFLOAT3), 1, fp);
+		fread(&material.mirror_color, sizeof(DirectX::XMFLOAT3), 1, fp);
+		fread(&material.toon_index, sizeof(unsigned char), 1, fp);
+		fread(&material.edge_flag, sizeof(unsigned char), 1, fp);
+
+		fread(&material.face_vert_count, sizeof(unsigned int), 1, fp);
+		fread(&material.texture_file_name[0], sizeof(material.texture_file_name), 1, fp);
 	}
+
+	//àÍéûìIÉ{Å[Éìì«Ç›çûÇ›
+	USHORT boneNum = 0;
+	fread(&boneNum, sizeof(USHORT), 1, fp);
 
 	fclose(fp);
 }
