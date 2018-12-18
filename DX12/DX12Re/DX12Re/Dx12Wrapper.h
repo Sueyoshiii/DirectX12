@@ -13,10 +13,26 @@ struct TransformMaterices {
 	DirectX::XMMATRIX wvp;
 };
 
+struct MaterialRGBA
+{
+	MaterialRGBA() {}
+	MaterialRGBA(float r, float g, float b, float a) : red(r), green(g), blue(b), alpha(a) {}
+	float red;
+	float green;
+	float blue;
+	float alpha;
+};
+
 struct Material
 {
+	//Material() {}
+	//Material(MaterialRGBA& dif, MaterialRGBA& spe, MaterialRGBA& amb) :
+	//	diffuse(dif), specular(spe), ambient(amb) {}
+	//MaterialRGBA diffuse;
+	//MaterialRGBA specular;
+	//MaterialRGBA ambient;
 	DirectX::XMFLOAT3 diffuse;
-	DirectX::XMFLOAT3 speculler;
+	DirectX::XMFLOAT3 specular;
 	DirectX::XMFLOAT3 ambient;
 };
 
@@ -45,7 +61,7 @@ private:
 
 	//DirectXグラフィックスインストラクチャー
 	//グラフィックスのランタイムに依存する必要のない、低レベルタスクを管理する。
-	IDXGIFactory6* dxgi;
+	IDXGIFactory5* dxgi;
 
 	//GPUで描画した画像を実際の画面に反映させるための機能、情報
 	IDXGISwapChain4* swapChain;
@@ -64,6 +80,7 @@ private:
 	ID3D12Resource* texBuffer;
 
 	//マテリアルバッファ
+	//ID3D12Resource* matBuffer;
 	ID3D12Resource* matBuffer;
 
 	//定数バッファ
@@ -98,6 +115,9 @@ private:
 
 	//インデックス配列
 	std::vector<unsigned short> index;
+
+	//マテリアル用配列
+	std::vector<Material*> material;
 
 	//モデル
 	std::shared_ptr<PMDModel> model;

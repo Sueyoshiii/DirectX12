@@ -11,6 +11,8 @@ cbuffer Mat : register(b0)
 cbuffer material : register(b1)
 {
     float3 diffuse;
+    float3 specular;
+    float3 ambient;
 }
 
 struct Out
@@ -39,6 +41,6 @@ float4 BasicPS(Out o) : SV_Target
     light = normalize(light);
     float3 brightness = dot(o.normal.xyz, light);
 
-    //return float4(tex.Sample(smp, o.uv).rgb, 1);
-    return float4(brightness * diffuse, 1);
+    //return float4(1, 1, 1, 1);
+    return float4(brightness * diffuse.rgb, 1);
 }

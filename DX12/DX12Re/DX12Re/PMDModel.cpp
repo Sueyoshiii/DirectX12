@@ -15,13 +15,13 @@ PMDModel::PMDModel(const char* filepath)
 	fread(&pmdheader.magic, sizeof(pmdheader.magic), 1, fp);
 	fread(&pmdheader.version, sizeof(pmdheader) - sizeof(pmdheader.magic) - 1, 1, fp);
 
+	vertexNum = 0;
 	fread(&vertexNum, sizeof(vertexNum), 1, fp);
-	vertex_size = 38;
 	pmdvertex.resize(vertexNum);
 
 	for (int i = 0; i < vertexNum; ++i)
 	{
-		fread(&pmdvertex[i], vertex_size, 1, fp);
+		fread(&pmdvertex[i], sizeof(PMDVertex), 1, fp);
 	}
 
 	indexNum = 0;
@@ -29,21 +29,12 @@ PMDModel::PMDModel(const char* filepath)
 	pmdindex.resize(indexNum);
 	fread(pmdindex.data(), sizeof(unsigned short), pmdindex.size(), fp);
 
+	materialNum = 0;
 	fread(&materialNum, sizeof(materialNum), 1, fp);
 	pmdmaterial.resize(materialNum);
-
 	for (auto& material : pmdmaterial)
 	{
-		fread(&material.diffuse_color, sizeof(DirectX::XMFLOAT3), 1, fp);
-		fread(&material.alpha, sizeof(float), 1, fp);
-		fread(&material.specularity, sizeof(float), 1, fp);
-		fread(&material.specular_color, sizeof(DirectX::XMFLOAT3), 1, fp);
-		fread(&material.mirror_color, sizeof(DirectX::XMFLOAT3), 1, fp);
-		fread(&material.toon_index, sizeof(unsigned char), 1, fp);
-		fread(&material.edge_flag, sizeof(unsigned char), 1, fp);
-
-		fread(&material.face_vert_count, sizeof(unsigned int), 1, fp);
-		fread(&material.texture_file_name[0], sizeof(material.texture_file_name), 1, fp);
+		fread(&material, sizeof(PMDMaterial), 1, fp);
 	}
 
 	//ˆêŽž“Iƒ{[ƒ““Ç‚Ýž‚Ý
@@ -51,8 +42,57 @@ PMDModel::PMDModel(const char* filepath)
 	fread(&boneNum, sizeof(USHORT), 1, fp);
 
 	fclose(fp);
+
+	for (int i = 0; i < 17; ++i)
+	{
+		if (pmdmaterial[i].texture_file_name[0] != '\0')
+		{
+			DirectX::LoadFromWICFile(
+				ChangeWString(
+					SetTex("Model/", pmdmaterial[i].texture_file_name)).c_str(), 
+				0, 
+				&pmdmetadata, 
+				img);
+		}
+	}
 }
 
+std::string PMDModel::SetTex(const std::string path1, const std::string path2)
+{
+	int pathIndex1 = path1.rfind("/");
+	int pathIndex2 = path2.rfind("\\");
+	int pathIndex = max(pathIndex1, pathIndex2);
+
+	std::string folderpath = path1.substr(0, pathIndex) + "/" + path2;
+
+	return folderpath;
+}
+
+std::wstring PMDModel::ChangeWString(const std::string & st)
+{
+	auto bytesize = MultiByteToWideChar(
+		CP_MACCP,
+		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+		st.c_str(),
+		-1,
+		nullptr,
+		0
+	);
+
+	std::wstring wstr;
+	wstr.resize(bytesize);
+
+	bytesize = MultiByteToWideChar(
+		CP_ACP,
+		MB_PRECOMPOSED | MB_ERR_INVALID_CHARS,
+		st.c_str(),
+		-1,
+		&wstr[0],
+		bytesize
+	);
+
+	return wstr;
+}
 
 PMDModel::~PMDModel()
 {

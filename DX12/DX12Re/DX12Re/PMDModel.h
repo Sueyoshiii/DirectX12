@@ -32,8 +32,6 @@ struct PMDMaterial {
 class PMDModel
 {
 private:
-	unsigned int vertex_size;
-
 	//頂点数
 	unsigned int vertexNum;
 
@@ -42,6 +40,14 @@ private:
 
 	//マテリアル数
 	unsigned int materialNum;
+
+	//フォルダ名摘出
+	std::string SetTex(const std::string path1, const std::string path2);
+
+	//string->wstringの変換
+	std::wstring ChangeWString(const std::string& st);
+
+	DirectX::ScratchImage img;
 public:
 	PMDModel(const char* filepath);
 	~PMDModel();
@@ -54,5 +60,7 @@ public:
 
 	//マテリアル集合体
 	std::vector<PMDMaterial> pmdmaterial;
+
+	DirectX::TexMetadata pmdmetadata = {};
 };
 

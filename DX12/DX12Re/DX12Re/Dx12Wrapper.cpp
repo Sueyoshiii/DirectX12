@@ -107,8 +107,11 @@ void Dx12Wrapper::Update(void)
 
 	commandList->SetPipelineState(pipelineState);
 	commandList->SetGraphicsRootSignature(rootSignature);
-	commandList->SetDescriptorHeaps(1, &rgstDescHeap);
+
 	auto handle = rgstDescHeap->GetGPUDescriptorHandleForHeapStart();
+
+	commandList->SetDescriptorHeaps(1, &rgstDescHeap);
+
 	commandList->SetGraphicsRootDescriptorTable(0, rgstDescHeap->GetGPUDescriptorHandleForHeapStart());
 	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	commandList->SetGraphicsRootDescriptorTable(1, handle);
@@ -118,9 +121,10 @@ void Dx12Wrapper::Update(void)
 	auto bbIndex = swapChain->GetCurrentBackBufferIndex();
 	//オフセット
 	heapStart.ptr += bbIndex * dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
 	//クリアカラー設定
-	float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	
+	float clearColor[] = { 0.0f, 1.0f, 0.0f, 1.0f };
+
 	//リソースバリアの設定
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -133,9 +137,9 @@ void Dx12Wrapper::Update(void)
 
 	//レンダーターゲット設定
 	commandList->OMSetRenderTargets(
-		1, 
-		&heapStart, 
-		false, 
+		1,
+		&heapStart,
+		false,
 		&dsvDescHeap->GetCPUDescriptorHandleForHeapStart()
 	);
 	//レンダーターゲットのクリア
@@ -154,23 +158,24 @@ void Dx12Wrapper::Update(void)
 	commandList->IASetIndexBuffer(&ibView);
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	//commandList->DrawIndexedInstanced(model->pmdindex.size(), 1, 0, 0, 0);
 	unsigned int offset = 0;
 	auto matHandle = matDescHeap->GetGPUDescriptorHandleForHeapStart();
-	ID3D12DescriptorHeap* matDescHeaps[] = { matDescHeap };
-	commandList->SetDescriptorHeaps(1, matDescHeaps);
+	//ID3D12DescriptorHeap* matDescHeaps[] = { matDescHeap };
+	commandList->SetDescriptorHeaps(1, &matDescHeap);
 	for (auto& m : model->pmdmaterial)
 	{
-		commandList->SetGraphicsRootDescriptorTable(1, matHandle);
+		commandList->SetGraphicsRootDescriptorTable(2, matHandle);
 		matHandle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
 		auto idxcnt = m.face_vert_count;
 		commandList->DrawIndexedInstanced(idxcnt, 1, offset, 0, 0);
 		offset += idxcnt;
 	}
 
-	//リソースバリアの設定
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+	//commandList->DrawIndexedInstanced(model->pmdindex.size(), 1, 0, 0, 0);
+
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 	commandList->ResourceBarrier(1, &barrier);
 
 	//コマンドリストのクローズ
@@ -510,7 +515,7 @@ void Dx12Wrapper::InitRootSignature(void)
 	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	//どのくらいのデータをシェーダに見せるか
 	samplerDesc.RegisterSpace = 0;	//0でいい
 	samplerDesc.MaxAnisotropy = 0;	//FilterがAnisotropyのときのみ有効
-	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//特に比較しない(ではなく常に否定)
+	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;	//常に否定
 
 	{
 		//テクスチャ用
@@ -539,7 +544,7 @@ void Dx12Wrapper::InitRootSignature(void)
 		//マテリアル用
 		descRange[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		descRange[2].BaseShaderRegister = 1;
-		descRange[2].NumDescriptors = model->pmdmaterial.size();
+		descRange[2].NumDescriptors = 1;
 		descRange[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 		rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
@@ -737,13 +742,14 @@ void Dx12Wrapper::InitMaterial(void)
 	//マテリアル
 	auto mats = model->pmdmaterial;
 
+	
 	//マテリアルバッファ作成
 	auto result = dev->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 		D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,	
 		&CD3DX12_RESOURCE_DESC::Buffer(size * mats.size()),	
 		D3D12_RESOURCE_STATE_GENERIC_READ,
-		nullptr,		
+		nullptr,
 		IID_PPV_ARGS(&matBuffer));
 
 	//ヒープ作成
@@ -756,10 +762,15 @@ void Dx12Wrapper::InitMaterial(void)
 
 	//ビュー作成
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+	desc.BufferLocation = matBuffer->GetGPUVirtualAddress();
+	desc.SizeInBytes = size;
 	auto handle = matDescHeap->GetCPUDescriptorHandleForHeapStart();
-	for (auto m : mats)
+	std::vector<Material> tempMat(mats.size());
+	int cnt = 0;
+	for (auto& m : mats)
 	{
-		desc.BufferLocation = matBuffer->GetGPUVirtualAddress();
+		tempMat[cnt++].diffuse = m.diffuse_color;
+
 		dev->CreateConstantBufferView(&desc, handle);
 		desc.BufferLocation += size;
 		handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -767,8 +778,115 @@ void Dx12Wrapper::InitMaterial(void)
 
 	char* matmap = nullptr;
 	result = matBuffer->Map(0, nullptr, (void**)&matmap);
-	memcpy(matmap, &mats[0], mats.size() * sizeof(mats[0]));
-	matBuffer->Unmap(0, nullptr);
+	memcpy(matmap, &tempMat[0], tempMat.size() * sizeof(Material));
+	//matBuffer->Unmap(0, nullptr);
+
+/*	HRESULT result = S_OK;
+
+	D3D12_HEAP_PROPERTIES materialHeapProp = {};
+	materialHeapProp.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	materialHeapProp.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	materialHeapProp.CreationNodeMask = 1;
+	materialHeapProp.VisibleNodeMask = 1;
+	materialHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+	D3D12_RESOURCE_DESC desc = {};
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	desc.Alignment = 0;
+	desc.Width = size;
+	desc.Height = 1;
+	desc.DepthOrArraySize = 1;
+	desc.MipLevels = 1;
+	desc.Format = DXGI_FORMAT_UNKNOWN;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+	int midx = 0;
+
+	material.resize(model->pmdmaterial.size());
+	matBuffer.resize(model->pmdmaterial.size());
+
+	for (auto& m : matBuffer)
+	{
+		result = dev->CreateCommittedResource(
+			&materialHeapProp,
+			D3D12_HEAP_FLAGS::D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&m)
+		);
+
+		MaterialRGBA diffuse(
+			model->pmdmaterial[midx].diffuse_color.x,
+			model->pmdmaterial[midx].diffuse_color.y,
+			model->pmdmaterial[midx].diffuse_color.z,
+			0
+		);
+		MaterialRGBA specular(
+			model->pmdmaterial[midx].specular_color.x,
+			model->pmdmaterial[midx].specular_color.y,
+			model->pmdmaterial[midx].specular_color.z,
+			0
+		);
+		float ambient = 0.5f;
+		MaterialRGBA ambientData(ambient, ambient, ambient, ambient);
+
+		Material sendMat(diffuse, specular, ambientData);
+
+		result = m->Map(0, nullptr, (void**)&material[midx]);
+		
+		*material[midx] = sendMat;
+
+		m->Unmap(0, nullptr);
+
+		++midx;
+	}
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC matDesc = {};
+	matDesc.SizeInBytes = size;
+
+	//ヒープ作成
+	D3D12_DESCRIPTOR_HEAP_DESC descHeapDesc = {};
+	descHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	descHeapDesc.NumDescriptors = mats.size();
+	descHeapDesc.NodeMask = 0;
+	descHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	result = dev->CreateDescriptorHeap(&descHeapDesc, IID_PPV_ARGS(&matDescHeap));
+
+	auto handle = matDescHeap->GetCPUDescriptorHandleForHeapStart();
+	auto h_size = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	unsigned int idx = 0;
+	for (auto& m : matBuffer)
+	{
+		//バッファの場所を取得
+		matDesc.BufferLocation = m->GetGPUVirtualAddress();
+
+		//定数バッファの生成
+		dev->CreateConstantBufferView(&matDesc, handle);
+
+		//シェーダリソースビュー
+		if (std::strlen(model->pmdmaterial[idx].texture_file_name) > 0)
+		{
+			//テクスチャあるとき
+			D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+			desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			desc.Texture2D.MipLevels = 1;
+			desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+			dev->CreateShaderResourceView(texBuffer, &desc, handle);
+		}
+		//テクスチャない場合、白テクスチャを作る
+
+		//ハンドルをずらす
+		handle.ptr += h_size;
+		++idx;
+	}
+	*/
 }
 
 Dx12Wrapper::~Dx12Wrapper()
